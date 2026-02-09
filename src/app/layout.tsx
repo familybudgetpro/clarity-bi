@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,7 +15,8 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Clarity BI | Intelligent Auto Insurance Analytics",
-  description: "Enterprise analytics for CEOs, CFOs, and managers. Conversational reporting with real-time Oracle and Excel integration.",
+  description:
+    "Enterprise analytics for CEOs, CFOs, and managers. Conversational reporting with real-time Oracle and Excel integration.",
 };
 
 export default function RootLayout({
@@ -24,8 +26,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
-      <body className="antialiased bg-slate-50 text-slate-900 font-inter">
-        {children}
+      <body className="antialiased bg-background text-foreground font-inter">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
