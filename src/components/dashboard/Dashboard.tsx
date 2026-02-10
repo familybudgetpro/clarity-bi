@@ -5,7 +5,7 @@ import { useDashboardState } from "@/hooks/useDashboardState";
 import { useFilters } from "@/hooks/useFilters";
 import { useData } from "@/hooks/useData";
 import { Sidebar } from "./Sidebar";
-import { DashboardHeader } from "./DashboardHeader";
+import { DashboardHeader, PublishModal } from "./DashboardHeader";
 import { FilterPanel } from "./FilterPanel";
 import { WidgetGallery } from "./WidgetGallery";
 import { ReportManager } from "./ReportManager";
@@ -17,14 +17,29 @@ import { RegionChart } from "./widgets/RegionChart";
 import { ProductChart } from "./widgets/ProductChart";
 import { DealerTable } from "./widgets/DealerTable"; // Ensure this matches file path
 import { ChatPanel } from "./ChatPanel";
+import {
+  AnalyticsView,
+  ClaimsView,
+  PerformanceView,
+  PartnersView,
+  SettingsView,
+  ProfileView,
+} from "./ViewPages";
 import { FileUp, Loader2, MousePointer, X, Layers } from "lucide-react";
 
 import { exportDashboardToPDF } from "@/lib/ExportManager";
 
 export default function ClarityDashboard() {
   const [activeView, setActiveView] = useState("Report");
-  const handleExport = () => {
-    exportDashboardToPDF("#report-canvas", "Clarity-BI-Report");
+  const [isExporting, setIsExporting] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportDashboardToPDF("#report-canvas", "Clarity-BI-Report");
+    } finally {
+      setIsExporting(false);
+    }
   };
   const [showFilters, setShowFilters] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -46,17 +61,53 @@ export default function ClarityDashboard() {
     {
       role: "assistant",
       content:
-        "Welcome! I've loaded a sample insurance dataset. Try dragging widgets in Edit mode!",
+        "Welcome! I've loaded a sample insurance dataset with 24,831 policies. Ask me anything — try 'Show top dealers' or 'What's the loss ratio?'",
     },
   ]);
+
+  const generateAIResponse = (msg: string): string => {
+    const lower = msg.toLowerCase();
+    if (lower.includes("loss ratio") || lower.includes("loss")) {
+      return `📊 The current loss ratio is **62.3%**, down 2.1% from last month. Comprehensive policies are driving higher ratios at 71%. Third Party policies remain healthy at 48%.`;
+    }
+    if (
+      lower.includes("top dealer") ||
+      lower.includes("best dealer") ||
+      lower.includes("top perform")
+    ) {
+      return `🏆 Top Dealers by Premium:\n1. Al Futtaim Motors — AED 8.2M (18% share)\n2. Juma Al Majid — AED 6.1M (14%)\n3. Al Tayer Motors — AED 5.4M (12%)\n\nAl Futtaim also has the lowest claim frequency at 3.2%.`;
+    }
+    if (lower.includes("claim") || lower.includes("claims")) {
+      return `📋 Claims Summary:\n• Total Active: 1,247 claims\n• Processing: 312\n• Under Review: 89\n• Average settlement: AED 12,400\n• Dubai has the highest volume at 42% of all claims.`;
+    }
+    if (lower.includes("premium") || lower.includes("revenue")) {
+      return `💰 Total Premium collected: **AED 102.4M** this year.\nMonthly trend: +12.5% vs last year.\nDubai leads at AED 43.2M, followed by Abu Dhabi at AED 28.1M.`;
+    }
+    if (
+      lower.includes("region") ||
+      lower.includes("dubai") ||
+      lower.includes("abu dhabi")
+    ) {
+      return `🗺️ Regional Breakdown:\n• Dubai: 42% of policies (10,429)\n• Abu Dhabi: 28% (6,953)\n• Sharjah: 15% (3,725)\n• Other Emirates: 15% (3,724)\n\nDubai shows strongest growth at +15% YoY.`;
+    }
+    if (lower.includes("risk") || lower.includes("portfolio")) {
+      return `⚠️ Portfolio Risk Level: **MODERATE**\n• High-risk segments: Comprehensive policies in Dubai (loss ratio 74%)\n• Low-risk segments: Third Party in Sharjah (loss ratio 38%)\n• Recommendation: Review high-value comprehensive policies above AED 50K.`;
+    }
+    if (lower.includes("help") || lower.includes("what can")) {
+      return `I can help you with:\n• 📊 "What's the loss ratio?"\n• 🏆 "Show top dealers"\n• 📋 "Claims summary"\n• 💰 "Premium revenue"\n• 🗺️ "Regional breakdown"\n• ⚠️ "Portfolio risk"\n\nJust ask naturally!`;
+    }
+    return `Interesting question about "${msg}". Based on the current dataset of 24,831 policies across 8 dealers, I'd suggest checking the Analytics or Claims view for more detail. Try asking me about loss ratios, top dealers, or regional breakdowns!`;
+  };
+
   const handleSendMessage = (msg: string) => {
     setChatMessages((prev) => [...prev, { role: "user", content: msg }]);
+    // Simulate typing delay
     setTimeout(() => {
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `I'm analyzing "${msg}"...` },
+        { role: "assistant", content: generateAIResponse(msg) },
       ]);
-    }, 1000);
+    }, 800);
   };
 
   const toggleEditMode = () => {
@@ -302,10 +353,10 @@ export default function ClarityDashboard() {
           setShowFilters={setShowFilters}
           isEditing={isEditing}
           setIsEditing={toggleEditMode}
-          hasActiveFilters={activeFilterCount > 0}
-          clearAllFilters={clearAllFilters}
           onUploadClick={() => fileInputRef.current?.click()}
           onExportClick={handleExport}
+          isExporting={isExporting}
+          onPublishClick={() => setShowPublishModal(true)}
         />
 
         <div className="flex-1 flex overflow-hidden relative">
@@ -314,6 +365,8 @@ export default function ClarityDashboard() {
             onClose={() => setShowFilters(false)}
             filters={filters}
             setFilter={setFilter}
+            clearAllFilters={clearAllFilters}
+            activeFilterCount={activeFilterCount}
             uploadedFiles={uploadedFiles}
             onUploadClick={() => fileInputRef.current?.click()}
           />
@@ -330,22 +383,56 @@ export default function ClarityDashboard() {
             }}
             onDrop={handleFileDrop}
           >
-            <Breadcrumbs
-              filters={filters}
-              clearFilter={(key) =>
-                setFilter(
-                  key,
-                  `All ${key.charAt(0).toUpperCase() + key.slice(1)}`,
-                )
-              }
-              clearAll={clearAllFilters}
-            />
+            {activeView === "Report" ? (
+              <>
+                <Breadcrumbs
+                  filters={filters}
+                  clearFilter={(key) =>
+                    setFilter(
+                      key,
+                      `All ${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                    )
+                  }
+                  clearAll={clearAllFilters}
+                />
 
-            <ReportManager
-              isEditing={isEditing}
-              dashboardState={dashboardState}
-              renderWidget={renderWidget}
-            />
+                <ReportManager
+                  isEditing={isEditing}
+                  dashboardState={dashboardState}
+                  renderWidget={renderWidget}
+                />
+              </>
+            ) : activeView === "Analytics" ? (
+              <AnalyticsView />
+            ) : activeView === "Claims" ? (
+              <ClaimsView />
+            ) : activeView === "Performance" ? (
+              <PerformanceView />
+            ) : activeView === "Partners" ? (
+              <PartnersView />
+            ) : activeView === "Settings" ? (
+              <SettingsView />
+            ) : activeView === "Profile" ? (
+              <ProfileView />
+            ) : (
+              <>
+                <Breadcrumbs
+                  filters={filters}
+                  clearFilter={(key) =>
+                    setFilter(
+                      key,
+                      `All ${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                    )
+                  }
+                  clearAll={clearAllFilters}
+                />
+                <ReportManager
+                  isEditing={isEditing}
+                  dashboardState={dashboardState}
+                  renderWidget={renderWidget}
+                />
+              </>
+            )}
 
             {/* Drag Overlay */}
             {isDraggingFile && (
@@ -428,6 +515,26 @@ export default function ClarityDashboard() {
           </div>
         )}
       </div>
+      {/* Publish Modal */}
+      <PublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+      />
+
+      {/* Export Loading Overlay */}
+      {isExporting && (
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="flex flex-col items-center bg-card border border-border rounded-2xl p-8 shadow-2xl animate-in fade-in zoom-in-95">
+            <Loader2 size={40} className="animate-spin text-primary mb-4" />
+            <p className="text-sm font-bold text-foreground">
+              Generating PDF...
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Capturing full dashboard
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
