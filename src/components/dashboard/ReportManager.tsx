@@ -23,12 +23,14 @@ interface ReportManagerProps {
   isEditing: boolean;
   dashboardState: ReturnType<typeof useDashboardState>;
   renderWidget: (type: string, config?: any) => React.ReactNode;
+  onExport: (type: string, title: string) => void;
 }
 
 export function ReportManager({
   isEditing,
   dashboardState,
   renderWidget,
+  onExport,
 }: ReportManagerProps) {
   const {
     pages,
@@ -147,6 +149,7 @@ export function ReportManager({
                 title={widget.title}
                 isEditing={isEditing}
                 onRemove={() => removeWidgetFromPage(activePage.id, widget.id)}
+                onExportData={() => onExport(widget.type, widget.title)}
                 className="h-full"
               >
                 {renderWidget(widget.type, widget.config)}

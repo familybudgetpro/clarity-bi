@@ -1,285 +1,195 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Clarity-BI-7c3aed?style=for-the-badge&logoColor=white" alt="Clarity BI" />
+  <img src="https://img.shields.io/badge/Next.js-16-000?style=for-the-badge&logo=nextdotjs" alt="Next.js" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Gemini_AI-2.0_Flash-4285F4?style=for-the-badge&logo=google" alt="Gemini" />
+</p>
+
 # Clarity BI
 
-> Enterprise-grade Business Intelligence for Auto Insurance — Power BI experience, without the complexity.
-
-![Clarity BI](https://img.shields.io/badge/Status-In%20Development-blue) ![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![License](https://img.shields.io/badge/License-Proprietary-red)
+**Real-time Insurance Business Intelligence Dashboard** — A full-stack analytics platform that transforms raw Sales & Claims Excel data into interactive visualizations, correlation analysis, and AI-powered insights.
 
 ---
 
-## 🎯 Overview
+## ✨ Features
 
-**Clarity BI** is a conversational analytics platform designed specifically for the **Auto Insurance** industry. It combines the visualization power of Power BI and Tableau with an AI-driven natural language interface, enabling CEOs, CFOs, COOs, and Line Managers to generate insights without writing a single formula.
+### 📊 Dashboard & Analytics
 
-### The Problem We Solve
-- **No DAX/SQL Required:** Users describe what they want in plain English.
-- **Instant Insights:** Drop an Excel file and get a dashboard in seconds.
-- **Mobile-First:** Designed for executives on the move.
-- **No License Complexity:** Simple, link-based sharing.
+- **KPI Cards** — Total Premium, Loss Ratio, Claim Rate, Active Policies
+- **Monthly Trends** — Premium and claims over time with interactive charts
+- **Dealer Performance** — Revenue share, claim rate, and loss ratio per dealer
+- **Product Mix** — Policy distribution across insurance products
+- **Vehicle Analysis** — Claims and premium breakdown by vehicle make
+
+### 📋 Claims Intelligence
+
+- **Status Breakdown** — Approved, Rejected, Reversed with visual indicators
+- **Parts Analysis** — Most common failure parts ranked by cost and frequency
+- **Recent Claims Feed** — Live feed of latest claims with status badges
+- **Claims Trends** — Monthly claim volume and amount tracking
+
+### 🔗 Correlation Engine
+
+- **Dealer Correlation** — Claim rate & loss ratio per dealer
+- **Product Correlation** — Which products generate the most claims
+- **Vehicle Make Correlation** — Risk analysis across vehicle brands
+- **Yearly Trends** — Year-over-year claim rate analysis
+
+### 📝 Data Manager
+
+- **Paginated Tables** — Browse 40K+ rows with fast pagination
+- **Inline Editing** — Double-click any cell to edit with validation
+- **Search & Sort** — Full-text search across all columns
+- **Audit Trail** — Every edit tracked with timestamp, old/new values
+- **Reset & Export** — Revert all changes or export to Excel
+
+### 🤖 Gemini AI Assistant
+
+- **Context-Aware Chat** — AI understands your live data (KPIs, filters, trends)
+- **Natural Language Queries** — Ask "What's the loss ratio?" or "Top dealers by claims"
+- **Smart Suggestions** — Auto-generated questions based on your data
+- **Powered by Gemini 2.0 Flash** — Fast, accurate responses
+
+### 🎛️ Advanced Filtering
+
+- **Staged Filtering** — Select multiple filters, then click "Apply" to reduce latency
+- **Dynamic Options** — Dealer, Product, Year, Month, Vehicle Make, Claim Status
+- **Custom Date Range** — Filter by specific policy sales windows
+- **Full-text Search** — Instantly search across all fields
+
+### ⚡ Performance & UX
+
+- **AI Actions** — Chat auto-navigates and applies filters (e.g., "Show Dealer X" -> Opens Dealer view + Filters)
+- **Responsive Widgets** — Charts adapt perfectly to any screen size
+- **Conditional Rendering** — Intelligent empty states when data is missing
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLARITY BI                               │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │   Next.js   │  │  Recharts   │  │ Tailwind 4  │  FRONTEND   │
-│  │   App Dir   │  │  + D3.js    │  │   + Inter   │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │  XLSX.js    │  │  PapaParse  │  │  AI Engine  │  DATA LAYER │
-│  │ Excel Parse │  │  CSV Parse  │  │  (LLM API)  │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────┐           │
-│  │              Oracle DB Connector                 │  PHASE 2  │
-│  │          (node-oracledb + Live Sync)            │           │
-│  └─────────────────────────────────────────────────┘           │
-└─────────────────────────────────────────────────────────────────┘
+clarity-bi/
+├── backend/                    # Python FastAPI backend
+│   ├── main.py                 # FastAPI app (20+ endpoints)
+│   ├── data_processor.py       # Analytics engine (pandas/numpy/scipy)
+│   ├── gemini_service.py       # Gemini AI integration
+│   └── requirements.txt        # Python dependencies
+├── src/
+│   ├── components/dashboard/   # React dashboard components
+│   │   ├── Dashboard.tsx       # Main dashboard shell
+│   │   ├── ViewPages.tsx       # Analytics, Claims, Performance, Partners views
+│   │   ├── DataManagerView.tsx # Editable data table with audit log
+│   │   ├── ChatPanel.tsx       # Gemini AI chat interface
+│   │   ├── FilterPanel.tsx     # Dynamic filter sidebar
+│   │   └── Sidebar.tsx         # Navigation sidebar
+│   ├── hooks/
+│   │   ├── useData.ts          # API data layer (fetch, edit, chat, export)
+│   │   └── useFilters.ts       # Filter state management
+│   └── ...
+├── Sales&ClaimsData.xls        # Source data (auto-loaded)
+└── .env                        # Environment variables (GEMINI_API_KEY)
 ```
 
 ---
 
-## ✨ Features
+## 🚀 Getting Started
 
-### Phase 1: Excel-Powered Analytics (Current)
+### Prerequisites
 
-#### 1. Smart Multi-File Upload
-- **Drag-and-Drop Zone:** Drop multiple Excel/CSV files simultaneously.
-- **AI Auto-Mapping:** Automatically identifies columns (Premium, Claims, Dealer, Date, etc.).
-- **Cross-File Linking:** Detects relationships (e.g., `Policy_ID` in Sales links to Claims).
-- **Data Versioning:** Upload "Sales_Jan.xlsx" and "Sales_Feb.xlsx" — they merge intelligently.
+- **Node.js** 18+
+- **Python** 3.10+
+- **Gemini API Key** ([Get one here](https://aistudio.google.com/apikey))
 
-#### 2. Instant Discovery Dashboard
-- **Zero Configuration:** The moment a file is dropped, a dashboard appears.
-- **Auto-Generated KPIs:** Total Premium, Loss Ratio, Active Claims, Policy Count.
-- **Smart Chart Selection:** The AI picks the best visualization for each metric.
+### 1. Clone & Install
 
-#### 3. Conversational Analytics (The "Chat" Interface)
-- **Natural Language Queries:**
-  - `"Show claims by dealer for the last month"`
-  - `"Compare loss ratios across regions"`
-  - `"Which product has the highest profitability?"`
-- **Conversational Editing:**
-  - `"Change this to a pie chart"`
-  - `"Filter by Dubai region"`
-  - `"Add a trend line"`
-  - `"Remove the legend"`
-- **Contextual Suggestions:** After each query, related reports are suggested:
-  - `"Compare Toyota claims vs. Nissan claims"`
-  - `"Forecast claims for next month"`
+```bash
+git clone https://github.com/your-org/clarity-bi.git
+cd clarity-bi
 
-#### 4. Role-Based Perspectives
-| Role | Focus | Key Features |
-|------|-------|--------------|
-| **CEO** | Strategic Growth | Market share, revenue trends, AI strategy suggestions |
-| **CFO** | Financial Health | Margins, reserves, liquidity forecasting, loss ratios |
-| **COO** | Operational Efficiency | Claim processing speed, dealer performance, bottlenecks |
-| **Line Manager** | Tactical Execution | Daily targets, regional performance, individual dealer support |
+# Frontend dependencies
+npm install
 
-#### 5. Power BI-Style UI
-- **Left Navigation:** Report / Data / Model views.
-- **Filter Pane:** Slicer-style filters (Date Range, Region, Dealer, Product).
-- **Field List:** Draggable Measures and Dimensions.
-- **Canvas Grid:** Resizable, selectable visualizations.
-- **Toolbar:** Add Visual, Table, Chart, Publish buttons.
+# Backend dependencies
+pip install -r backend/requirements.txt
+```
 
-#### 6. Visualization Library
-- Bar Charts (Vertical & Horizontal)
-- Line Charts with Trend Lines
-- Combo Charts (Bars + Lines)
-- Pie & Donut Charts
-- Data Tables with Conditional Formatting
-- KPI Cards with Sparklines
-- Heatmaps (Regional Performance)
+### 2. Configure Environment
 
-#### 7. Export & Sharing
-- **One-Click PDF Export:** Branded, print-ready reports.
-- **Live Sharing Links:** Stakeholders can view without login.
-- **Excel Export:** Download filtered data for further analysis.
+Create a `.env` file in the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+### 3. Add Your Data
+
+Place your Excel file as `Sales&ClaimsData.xls` in the project root. The file should have:
+
+- A **Sales** sheet with columns: `Dealer`, `Product`, `Gross Premium`, `Policy No`, `Year`, `Month`, `Make`, `Model`, etc.
+- A **Claims** sheet with columns: `Dealer`, `Make`, `Model`, `Policy No`, `Claim Status`, `Total Auth Amount`, `Part Type`, etc.
+- Both sheets linked by `Policy No`
+
+### 4. Run
+
+```bash
+# Terminal 1: Start the backend (auto-loads Excel on startup)
+cd backend
+python main.py
+# → http://localhost:8000
+
+# Terminal 2: Start the frontend
+npm run dev
+# → http://localhost:3001
+```
+
+Open **http://localhost:3001** in your browser.
 
 ---
 
-### Phase 2: Oracle Live Sync (Planned)
+## 📡 API Reference
 
-#### 1. Real-Time Oracle DB Connection
-- **Connection Pooling:** High-performance `node-oracledb` integration.
-- **Live Data Refresh:** Dashboards update as the database changes.
-- **Schema Detection:** Auto-discovers tables and relationships.
+| Endpoint                | Method | Description                                    |
+| ----------------------- | ------ | ---------------------------------------------- |
+| `/api/status`           | GET    | Check data loaded status & AI availability     |
+| `/api/upload`           | POST   | Upload Excel file (multipart form)             |
+| `/api/summary`          | GET    | KPIs: premium, claims, loss ratio, claim rate  |
+| `/api/filters`          | GET    | Available filter options                       |
+| `/api/sales/monthly`    | GET    | Monthly premium & policy trends                |
+| `/api/sales/dealers`    | GET    | Dealer performance table                       |
+| `/api/sales/products`   | GET    | Product mix breakdown                          |
+| `/api/sales/vehicles`   | GET    | Vehicle make distribution                      |
+| `/api/claims/status`    | GET    | Claim status breakdown                         |
+| `/api/claims/parts`     | GET    | Parts failure analysis                         |
+| `/api/claims/trends`    | GET    | Monthly claim trends                           |
+| `/api/claims/recent`    | GET    | Recent claims feed                             |
+| `/api/correlations`     | GET    | Claim correlations by dealer/product/make/year |
+| `/api/data/{table}`     | GET    | Paginated raw data (sales/claims)              |
+| `/api/data/update`      | PUT    | Inline cell edit with validation               |
+| `/api/data/bulk-update` | PUT    | Batch cell updates                             |
+| `/api/data/reset`       | POST   | Revert all edits to original data              |
+| `/api/data/changes`     | GET    | Audit log of all edits                         |
+| `/api/export/{table}`   | GET    | Download table as Excel                        |
+| `/api/chat`             | POST   | AI chat with data context                      |
+| `/api/chat/suggestions` | GET    | AI-generated question suggestions              |
 
-#### 2. Executive Live Wall
-- **Pulse Dashboard:** Real-time KPIs that update every few seconds.
-- **Alert System:** Push notifications for critical thresholds (e.g., Loss Ratio > 70%).
-
----
-
-### Phase 3: Predictive & AI Features (Planned)
-
-#### 1. Predictive Claims
-- **Historical Analysis:** Uses past claim patterns to forecast next month's payout.
-- **Risk Heatmap:** Predicts which vehicle segments will see claim spikes.
-
-#### 2. Business Strategy Consultant
-- **AI-Generated Insights:**
-  - `"Warning: Claim costs for [Brand X] have risen 15%. Strategy: Increase premiums by 5%."`
-  - `"Sales for [Product Z] are lagging in the Northern region. Launch a dealer incentive."`
-
-#### 3. Forecasting Engine
-- **Revenue Projections:** Predict next quarter's premium income.
-- **Growth Strategies:** AI suggests markets to expand into based on loss ratios and competition.
-
----
-
-## 🚀 Auto Insurance Industry Modules
-
-### 1. Sales & Products
-- Revenue trends by product type (Comprehensive, Third Party, Agency Repair).
-- Renewal tracking with expiry heatmaps.
-- Policy conversion funnels.
-
-### 2. Dealer Network
-- Dealer scorecards (Sales Volume + Loss Ratio).
-- Commission and incentive tracking.
-- Market share by dealer and brand.
-
-### 3. Claims & Risk
-- Loss Ratio dashboards (Premiums vs. Claims).
-- Claim aging and bottleneck detection.
-- Fraud detection triggers (unusual claim patterns).
-
-### 4. Warranties & Extended Cover
-- Warranty profitability analysis.
-- Part failure rate tracking.
-- Repair cost vs. warranty revenue.
-
----
-
-## 📱 Responsive Design
-
-| Device | Experience |
-|--------|------------|
-| **Desktop** | Full Power BI-style layout with all panes |
-| **Tablet** | Collapsible sidebars, touch-optimized charts |
-| **Mobile** | Single-column KPI cards, swipeable charts, bottom chat |
+All GET endpoints accept filter query params: `dealer`, `product`, `year`, `month`, `make`, `date_from`, `date_to`, `search`, `claim_status`.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Next.js 16 (App Router, Server Components) |
-| **Language** | TypeScript 5 |
-| **Styling** | Tailwind CSS 4 |
-| **Charts** | Recharts + D3.js |
-| **Fonts** | Inter (UI), Outfit (Headers) |
-| **Excel Parsing** | XLSX.js, PapaParse |
-| **AI/LLM** | OpenAI GPT-4o / Gemini (configurable) |
-| **Database** | Oracle DB (Phase 2) |
-| **Deployment** | Vercel |
-
----
-
-## 📂 Project Structure
-
-```
-clarity-bi/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx          # Root layout with fonts
-│   │   ├── page.tsx            # Main entry point
-│   │   └── globals.css         # Tailwind + custom styles
-│   ├── components/
-│   │   ├── dashboard/
-│   │   │   └── Dashboard.tsx   # Main Power BI-style dashboard
-│   │   ├── charts/             # Reusable chart components
-│   │   ├── filters/            # Filter pane components
-│   │   └── ui/                 # Buttons, cards, inputs
-│   ├── lib/
-│   │   ├── excel-parser.ts     # Excel/CSV processing
-│   │   ├── ai-engine.ts        # Natural language to query
-│   │   ├── data-linker.ts      # Cross-file relationship detection
-│   │   └── chart-selector.ts   # Auto-selects best chart type
-│   └── types/
-│       └── index.ts            # TypeScript interfaces
-├── public/
-│   └── assets/                 # Static images, icons
-├── package.json
-├── tailwind.config.ts
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## 🚦 Development Roadmap
-
-### ✅ Completed
-- [x] Project initialization (Next.js 16 + Tailwind 4)
-- [x] Power BI-style UI shell (Nav, Toolbar, Filter Pane, Field List)
-- [x] KPI cards with sparklines
-- [x] Combo charts, Pie charts, Data tables
-- [x] AI Chat panel UI
-- [x] Drag-and-drop file zone
-- [x] Vercel deployment
-- [x] **Interactive Filtering** - Click any filter to update all charts instantly
-- [x] **Click-to-Drill-Down** - Click on chart elements to filter
-- [x] **Cross-Filtering** - Charts update each other in real-time
-- [x] **Export at Every Point** - PDF/Image export for each widget
-- [x] **Draggable Rearrangement** - Drag cards to reorder
-- [x] **Predictive Analytics Engine** - Forecasting and risk analysis
-- [x] **Oracle DB Connector** - Ready for live data sync
-
-### 🔄 In Progress
-- [ ] Excel parsing with real file upload
-- [ ] Full natural language query processing
-- [ ] Live Oracle DB connection (requires Oracle server)
-
-### 📋 Upcoming
-- [ ] Role-based perspective switching
-- [ ] Contextual report suggestions
-- [ ] Predictive claims visualization
-- [ ] Business strategy AI recommendations panel
-- [ ] WhatsApp/Email automated reports
-
----
-
-## 🔧 Local Development
-
-```bash
-# Clone the repository
-cd clarity-bi
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Deploy to Vercel
-vercel --prod
-```
-
----
-
-## 🔗 Live Demo
-
-**Production URL:** [https://clarity-bi-opal.vercel.app](https://clarity-bi-opal.vercel.app)
+| Layer           | Technology                                  |
+| --------------- | ------------------------------------------- |
+| Frontend        | Next.js 16, React, TypeScript, Tailwind CSS |
+| Charts          | Recharts                                    |
+| Icons           | Lucide React                                |
+| Backend         | Python, FastAPI, Uvicorn                    |
+| Data Processing | pandas, NumPy, SciPy                        |
+| AI              | Google Gemini 2.0 Flash                     |
+| Data Format     | Excel (.xls/.xlsx) via xlrd/openpyxl        |
 
 ---
 
 ## 📄 License
 
-Proprietary — All rights reserved.
-
----
-
-## 👥 Team
-
-Built for the Auto Insurance industry by the Clarity BI team.
+MIT

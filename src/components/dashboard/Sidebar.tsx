@@ -8,7 +8,7 @@ import {
   Settings,
   LogOut,
   User,
-  ChevronUp,
+  Database,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +22,7 @@ const navItems = [
   { id: "Claims", icon: PieChart, label: "Claims" },
   { id: "Performance", icon: TrendingUp, label: "Performance" },
   { id: "Partners", icon: Users, label: "Partners" },
+  { id: "Data Manager", icon: Database, label: "Data Manager" },
 ];
 
 export function Sidebar({ activeView, setActiveView }: SidebarProps) {

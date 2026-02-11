@@ -1,309 +1,245 @@
-import React, { useState } from "react";
-import {
-  Filter,
-  X,
-  ChevronDown,
-  Check,
-  FileSpreadsheet,
-  Plus,
-  Search,
-  RotateCcw,
-} from "lucide-react";
-import { useFilters } from "@/hooks/useFilters";
+"use client";
+
+import React from "react";
+import { Filter, X, Calendar, Search, Check } from "lucide-react";
+import type { FilterOptions } from "@/hooks/useData";
 
 interface FilterPanelProps {
   show: boolean;
   onClose: () => void;
-  filters: any;
-  setFilter: (key: string, value: string) => void;
+  staged: Record<string, string>;
+  setStagedFilter: (key: string, value: string) => void;
   clearAllFilters: () => void;
-  activeFilterCount: number;
-  uploadedFiles: any[];
+  applyFilters: () => void;
+  stagedFilterCount: number;
+  hasUnappliedChanges: boolean;
+  filterOptions: FilterOptions;
   onUploadClick: () => void;
 }
 
 export function FilterPanel({
   show,
   onClose,
-  filters,
-  setFilter,
+  staged,
+  setStagedFilter,
   clearAllFilters,
-  activeFilterCount,
-  uploadedFiles,
-  onUploadClick,
+  applyFilters,
+  stagedFilterCount,
+  hasUnappliedChanges,
+  filterOptions,
 }: FilterPanelProps) {
   if (!show) return null;
 
-  const dateOptions = [
-    "All Time",
-    "Last 30 Days",
-    "Last 3 Months",
-    "Last 6 Months",
-    "Last Year",
-  ];
-  const regionOptions = [
-    "All Regions",
-    "Dubai",
-    "Abu Dhabi",
-    "Sharjah",
-    "Ajman",
-    "RAK",
-    "Al Ain",
-    "UAQ",
-  ];
-  const dealerOptions = [
-    "All Dealers",
-    "Al Futtaim Motors",
-    "Juma Al Majid",
-    "Al Tayer Motors",
-    "Trading Enterprises",
-    "Al Nabooda Auto",
-    "Gargash Enterprises",
-    "Emirates Motor",
-    "Al Rostamani",
-    "AW Rostamani",
-    "Al Habtoor Motors",
-    "Al Masaood Auto",
-  ];
-  const productOptions = [
-    "All Products",
-    "Comprehensive",
-    "Third Party",
-    "Agency Repair",
-    "Extended Warranty",
-  ];
+  const handleApply = () => {
+    applyFilters();
+  };
 
   return (
-    <aside className="w-72 bg-card border-r border-border flex flex-col shrink-0 shadow-xl z-30 transition-all duration-300 animate-in slide-in-from-left-4 h-full">
+    <aside className="w-72 bg-card border-r border-border flex flex-col shrink-0 shadow-lg animate-in slide-in-from-left-4 duration-300 z-20">
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between bg-linear-to-r from-primary/5 to-transparent">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Filter size={14} className="text-primary" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-foreground block">
-              Filters
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Filter size={16} className="text-primary" />
+          <span className="text-sm font-bold text-foreground">Filters</span>
+          {stagedFilterCount > 0 && (
+            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+              {stagedFilterCount}
             </span>
-            {activeFilterCount > 0 && (
-              <span className="text-[10px] text-primary font-semibold">
-                {activeFilterCount} active
-              </span>
-            )}
-          </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
-          {activeFilterCount > 0 && (
+          {stagedFilterCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-              title="Clear all filters"
+              className="text-[10px] text-destructive hover:underline font-medium mr-2"
             >
-              <RotateCcw size={14} />
+              Clear All
             </button>
           )}
           <button
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-muted rounded-lg transition-colors"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
       </div>
 
-      {/* Filter Groups */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-muted">
-        <FilterChip
-          label="Date Range"
-          value={filters.dateRange}
-          options={dateOptions}
-          onChange={(v) => setFilter("dateRange", v)}
-        />
-        <FilterChip
-          label="Region"
-          value={filters.region}
-          options={regionOptions}
-          onChange={(v) => setFilter("region", v)}
-        />
-        <FilterChip
-          label="Dealer"
-          value={filters.dealer}
-          options={dealerOptions}
-          onChange={(v) => setFilter("dealer", v)}
-          searchable
-        />
-        <FilterChip
-          label="Product"
-          value={filters.product}
-          options={productOptions}
-          onChange={(v) => setFilter("product", v)}
-        />
-      </div>
-
-      {/* Data Sources */}
-      <div className="border-t border-border p-3 bg-muted/5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            Data Sources
-          </span>
-          <button
-            onClick={onUploadClick}
-            className="text-primary hover:text-primary/80 transition-colors p-1 hover:bg-primary/10 rounded"
-          >
-            <Plus size={12} />
-          </button>
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* Search */}
+        <div>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            <Search size={10} className="inline mr-1" />
+            Search
+          </label>
+          <input
+            type="text"
+            value={staged.search || ""}
+            onChange={(e) => setStagedFilter("search", e.target.value)}
+            placeholder="Search across all fields..."
+            className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-lg outline-none focus:border-primary/50 transition-colors"
+          />
         </div>
-        <div className="space-y-1.5">
-          {uploadedFiles.length === 0 ? (
-            <div className="text-[10px] text-muted-foreground italic px-2 py-1.5 border border-dashed border-border rounded-lg bg-muted/20">
-              Demo data loaded
+
+        {/* Date Range */}
+        <div>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            <Calendar size={10} className="inline mr-1" />
+            Date Range
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <span className="text-[9px] text-muted-foreground">From</span>
+              <input
+                type="date"
+                value={staged.date_from || ""}
+                onChange={(e) => setStagedFilter("date_from", e.target.value)}
+                className="w-full px-2 py-1.5 text-xs bg-muted/30 border border-border rounded-lg outline-none focus:border-primary/50"
+              />
             </div>
-          ) : (
-            uploadedFiles.map((f, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 p-2 bg-card rounded-lg border border-border text-xs shadow-sm"
-              >
-                <FileSpreadsheet
-                  size={12}
-                  className="text-green-600 shrink-0"
-                />
-                <span className="truncate flex-1 font-medium text-[11px]">
-                  {f.name}
-                </span>
-                <span className="text-muted-foreground text-[9px]">
-                  {f.data.length} rows
-                </span>
-                <Check size={10} className="text-primary shrink-0" />
-              </div>
-            ))
-          )}
+            <div>
+              <span className="text-[9px] text-muted-foreground">To</span>
+              <input
+                type="date"
+                value={staged.date_to || ""}
+                onChange={(e) => setStagedFilter("date_to", e.target.value)}
+                className="w-full px-2 py-1.5 text-xs bg-muted/30 border border-border rounded-lg outline-none focus:border-primary/50"
+              />
+            </div>
+          </div>
         </div>
+
+        {/* Dealer */}
+        <FilterSelect
+          label="Dealer"
+          value={staged.dealer || "All"}
+          options={filterOptions.dealers}
+          onChange={(v) => setStagedFilter("dealer", v)}
+        />
+
+        {/* Product */}
+        <FilterSelect
+          label="Product"
+          value={staged.product || "All"}
+          options={filterOptions.products}
+          onChange={(v) => setStagedFilter("product", v)}
+        />
+
+        {/* Year */}
+        <FilterSelect
+          label="Year"
+          value={staged.year || "All"}
+          options={filterOptions.years.map(String)}
+          onChange={(v) => setStagedFilter("year", v)}
+        />
+
+        {/* Month */}
+        <FilterSelect
+          label="Month"
+          value={staged.month || "All"}
+          options={filterOptions.months.map((m) => ({
+            value: String(m),
+            label:
+              [
+                "",
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ][m] || String(m),
+          }))}
+          onChange={(v) => setStagedFilter("month", v)}
+        />
+
+        {/* Vehicle Make */}
+        <FilterSelect
+          label="Vehicle Make"
+          value={staged.make || "All"}
+          options={filterOptions.makes}
+          onChange={(v) => setStagedFilter("make", v)}
+        />
+
+        {/* Claim Status */}
+        <FilterSelect
+          label="Claim Status"
+          value={staged.claim_status || "All"}
+          options={filterOptions.claimStatuses}
+          onChange={(v) => setStagedFilter("claim_status", v)}
+        />
+      </div>
+
+      {/* Apply Button */}
+      <div className="p-4 border-t border-border bg-muted/10 space-y-2">
+        <button
+          onClick={handleApply}
+          disabled={!hasUnappliedChanges}
+          className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${
+            hasUnappliedChanges
+              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          }`}
+        >
+          <Check size={14} />
+          Apply Filters
+          {hasUnappliedChanges && (
+            <span className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
+          )}
+        </button>
+        {stagedFilterCount > 0 && (
+          <button
+            onClick={clearAllFilters}
+            className="w-full py-2 rounded-xl text-xs font-medium text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 transition-colors"
+          >
+            Reset All Filters
+          </button>
+        )}
       </div>
     </aside>
   );
 }
 
-function FilterChip({
+// ─── Reusable Filter Select ─────────────────────────────
+
+function FilterSelect({
   label,
   value,
   options,
   onChange,
-  searchable,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: string[] | { value: string; label: string }[];
   onChange: (v: string) => void;
-  searchable?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const isActive = value !== options[0];
-
-  const filteredOptions = searchable
-    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
-    : options;
-
   return (
-    <div
-      className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-        isActive
-          ? "border-primary/40 bg-primary/5 ring-1 ring-primary/10"
-          : "border-border/60 bg-card hover:border-border"
-      }`}
-    >
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2.5 text-left transition-colors group"
+    <div>
+      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-xs bg-muted/30 border border-border rounded-lg outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-              isActive ? "bg-primary" : "bg-muted-foreground/30"
-            }`}
-          />
-          <div className="min-w-0">
-            <span className="text-[9px] text-muted-foreground uppercase font-bold block tracking-wider leading-none mb-0.5">
-              {label}
-            </span>
-            <span
-              className={`text-xs font-semibold truncate block ${
-                isActive ? "text-primary" : "text-foreground"
-              }`}
-            >
-              {value}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {isActive && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(options[0]);
-              }}
-              className="p-0.5 hover:bg-destructive/10 hover:text-destructive rounded transition-colors text-muted-foreground"
-              title="Clear"
-            >
-              <X size={12} />
-            </button>
-          )}
-          <ChevronDown
-            size={14}
-            className={`text-muted-foreground transition-transform duration-200 ${
-              open ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t border-border/30 p-1.5 space-y-0.5 bg-card/80 backdrop-blur-sm animate-in fade-in slide-in-from-top-1 duration-150">
-          {searchable && (
-            <div className="px-1.5 pb-1.5">
-              <div className="relative">
-                <Search
-                  size={12}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full bg-muted/50 border border-transparent focus:border-primary/30 rounded-lg py-1.5 pl-7 pr-2 text-xs outline-none transition-colors"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            </div>
-          )}
-          <div className="max-h-36 overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-muted">
-            {filteredOptions.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground italic">
-                No matches
-              </div>
-            )}
-            {filteredOptions.map((o) => (
-              <button
-                key={o}
-                onClick={() => {
-                  onChange(o);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
-                  value === o
-                    ? "bg-primary/10 text-primary font-bold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {value === o && <Check size={10} className="shrink-0" />}
-                <span className={value === o ? "" : "ml-4"}>{o}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        <option value="All">All {label}s</option>
+        {options.map((opt) => {
+          const val = typeof opt === "string" ? opt : opt.value;
+          const lbl = typeof opt === "string" ? opt : opt.label;
+          return (
+            <option key={val} value={val}>
+              {lbl}
+            </option>
+          );
+        })}
+      </select>
     </div>
   );
 }

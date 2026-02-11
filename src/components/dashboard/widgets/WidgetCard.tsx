@@ -8,6 +8,7 @@ interface WidgetCardProps {
   children: React.ReactNode;
   isEditing: boolean;
   onRemove?: () => void;
+  onExportData?: () => void;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export function WidgetCard({
   children,
   isEditing,
   onRemove,
+  onExportData,
   className = "",
 }: WidgetCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -70,8 +72,8 @@ export function WidgetCard({
         </div>
       </div>
 
-      <div className="flex-1 relative min-h-0 bg-background/40">
-        <div className="absolute inset-0 p-3">{children}</div>
+      <div className="flex-1 relative min-h-0 bg-background/40 overflow-hidden">
+        <div className="h-full w-full p-3">{children}</div>
 
         {/* Export Menu Overlay */}
         {menuOpen && (
@@ -88,6 +90,17 @@ export function WidgetCard({
             >
               <Image size={12} /> Save as Image
             </button>
+            {onExportData && (
+              <button
+                onClick={() => {
+                  if (onExportData) onExportData();
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-muted text-popover-foreground flex items-center gap-2 border-t border-border/50"
+              >
+                <FileText size={12} /> Export to Excel
+              </button>
+            )}
           </div>
         )}
 
