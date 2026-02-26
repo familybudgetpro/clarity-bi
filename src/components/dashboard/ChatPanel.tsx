@@ -39,6 +39,7 @@ interface HistoryItem {
 
 interface ChatPanelProps {
   show: boolean;
+  fullPage?: boolean;
   onSend: (
     message: string,
     history: HistoryItem[],
@@ -73,6 +74,7 @@ function parseMarkdown(text: string) {
 
 export function ChatPanel({
   show,
+  fullPage = false,
   onSend,
   aiAvailable,
   onAiAction,
@@ -149,6 +151,181 @@ export function ChatPanel({
   };
 
   if (!show) return null;
+
+  if (fullPage) {
+    return (
+      <div className="flex-1 flex flex-col items-center overflow-hidden bg-background px-4 py-4">
+        <div className="w-full max-w-2xl flex flex-col h-full bg-card border border-border rounded-2xl shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2 shrink-0">
+            <Sparkles size={16} className="text-primary" />
+            <span className="text-sm font-bold text-foreground">Clarity AI</span>
+            <div
+              className={`ml-auto w-2 h-2 rounded-full shrink-0 ${aiAvailable ? "bg-green-500" : "bg-red-400"}`}
+            />
+            <span className="text-[10px] text-muted-foreground">
+              {aiAvailable ? "Online" : "Offline"}
+            </span>
+            {messages.length > 0 && (
+              <button
+                onClick={handleClearHistory}
+                className="ml-1 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Clear conversation"
+              >
+                <RotateCcw size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-muted-foreground/20"
+          >
+            {messages.length === 0 && (
+              <div className="text-center py-10">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles size={28} className="text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-6 font-medium">
+                  Ask me about your data
+                </p>
+                <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                  {generalSuggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSubmit(s)}
+                      className="text-left text-xs p-3 bg-muted/30 hover:bg-muted/70 border border-border hover:border-primary/30 rounded-xl text-foreground transition-all"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div key={i} className="space-y-2">
+                <div
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/50 text-foreground border border-border"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap">{parseMarkdown(msg.content)}</div>
+                    {msg.role === "assistant" && msg.actions && (
+                      <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
+                        {msg.actions.navigate && (
+                          <button
+                            onClick={() => handleAction(msg.actions!)}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-semibold transition-colors"
+                          >
+                            <ArrowRight size={12} />
+                            View in{" "}
+                            {msg.actions.navigate.charAt(0).toUpperCase() + msg.actions.navigate.slice(1)}
+                          </button>
+                        )}
+                        {msg.actions.filters && Object.keys(msg.actions.filters).length > 0 && (
+                          <button
+                            onClick={() => handleAction(msg.actions!)}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs font-semibold transition-colors"
+                          >
+                            <Filter size={12} />
+                            Apply:{" "}
+                            {Object.entries(msg.actions.filters)
+                              .map(([k, v]) => `${k}=${v}`)
+                              .join(", ")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {msg.role === "assistant" && msg.nextSuggestions && msg.nextSuggestions.length > 0 && i === messages.length - 1 && !loading && (
+                  <div className="space-y-1 pl-2">
+                    {msg.nextSuggestions.map((s, si) => (
+                      <button
+                        key={si}
+                        onClick={() => handleSubmit(s)}
+                        className="block w-full text-left text-xs px-3 py-2 bg-muted/20 hover:bg-primary/10 border border-border/60 hover:border-primary/40 rounded-xl text-muted-foreground hover:text-primary transition-all"
+                      >
+                        ↳ {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {msg.role === "assistant" && onAddWidget && msg.widgetSuggestions && msg.widgetSuggestions.length > 0 && i === messages.length - 1 && !loading && (
+                  <div className="pl-2 mt-1">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <LayoutDashboard size={10} /> Suggested Widgets
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {msg.widgetSuggestions.map((w, wi) => (
+                        <button
+                          key={wi}
+                          onClick={() => onAddWidget(w.type, w.title)}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary/5 hover:bg-primary/15 border border-primary/20 hover:border-primary/50 rounded-xl text-primary transition-all"
+                        >
+                          <Plus size={10} />
+                          {w.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-muted/50 border border-border rounded-2xl px-4 py-2.5 flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Thinking...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="p-4 border-t border-border shrink-0">
+            {!aiAvailable && (
+              <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-500/10 px-3 py-2 rounded-xl mb-3 border border-amber-500/20">
+                <WifiOff size={12} />
+                <span>Set GEMINI_API_KEY in .env to enable AI</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSubmit()}
+                placeholder="Ask about your data..."
+                className="flex-1 px-4 py-2.5 text-sm bg-muted/30 border border-border rounded-xl outline-none focus:border-primary/50 transition-colors"
+              />
+              <button
+                onClick={() => handleSubmit()}
+                disabled={!input.trim() || loading}
+                className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+            {history.length > 0 && (
+              <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
+                {Math.floor(history.length / 2)} turn{history.length / 2 !== 1 ? "s" : ""} in context
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <aside className="w-80 bg-card border-l border-border flex flex-col shrink-0 shadow-lg">

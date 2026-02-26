@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 const API_BASE = ""; // Relative paths for Vercel/Production
 
@@ -284,28 +284,20 @@ export function useData(filters: Filters = {}) {
     }
   }, []);
 
+  // ─── Fetch counter to discard stale responses ────────────
+
+  const fetchIdRef = useRef(0);
+
   // ─── Fetch all data ─────────────────────────────────────
 
   const fetchAllData = useCallback(async (f: Filters = {}) => {
+    const myFetchId = ++fetchIdRef.current;
     setIsLoading(true);
     const qs = buildQuery(f);
 
     try {
-      const [
-        summaryData,
-        filtersData,
-        monthlyData,
-        dealersData,
-        productsData,
-        vehiclesData,
-        statusData,
-        partsData,
-        trendsData,
-        recentData,
-        corrData,
-        insightsData,
-        validationData,
-      ] = await Promise.all([
+      // Use allSettled so one failing endpoint doesn't block everything
+      const results = await Promise.allSettled([
         apiFetch<KPIs>(`/api/summary${qs}`),
         apiFetch<FilterOptions>("/api/filters"),
         apiFetch<SalesMonthly[]>(`/api/sales/monthly${qs}`),
@@ -315,34 +307,56 @@ export function useData(filters: Filters = {}) {
         apiFetch<ClaimStatus[]>(`/api/claims/status${qs}`),
         apiFetch<PartAnalysis[]>(`/api/claims/parts${qs}`),
         apiFetch<ClaimTrend[]>(`/api/claims/trends${qs}`),
-
         apiFetch<Record<string, unknown>[]>(`/api/claims/recent${qs}`),
         apiFetch<Correlations>(`/api/correlations${qs}`),
         apiFetch<Insight[]>(`/api/insights${qs}`),
         apiFetch<ValidationResult>("/api/validate"),
       ]);
 
-      setKpis(summaryData);
-      setFilterOptions(filtersData);
-      setSalesMonthly(monthlyData);
-      setSalesDealers(dealersData);
-      setSalesProducts(productsData);
-      setSalesVehicles(vehiclesData);
-      setClaimStatuses(statusData);
-      setClaimParts(partsData);
-      setClaimTrends(trendsData);
-      setRecentClaims(recentData);
-      setCorrelations(corrData);
-      setInsights(insightsData);
-      setValidation(validationData);
+      // If a newer fetch was started, discard this one
+      if (myFetchId !== fetchIdRef.current) return;
+
+      const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
+        r.status === "fulfilled" ? r.value : fallback;
+
+      const emptyFilterOpts: FilterOptions = {
+        dealers: [], products: [], years: [], months: [], makes: [],
+        countries: [], coverages: [], vehicleTypes: [], bodyTypes: [],
+        claimStatuses: [], partTypes: [],
+      };
+
+      setKpis(val(results[0] as PromiseSettledResult<KPIs>, null));
+      setFilterOptions(val(results[1] as PromiseSettledResult<FilterOptions>, emptyFilterOpts));
+      setSalesMonthly(val(results[2] as PromiseSettledResult<SalesMonthly[]>, []));
+      setSalesDealers(val(results[3] as PromiseSettledResult<DealerPerf[]>, []));
+      setSalesProducts(val(results[4] as PromiseSettledResult<ProductMix[]>, []));
+      setSalesVehicles(val(results[5] as PromiseSettledResult<VehicleMix[]>, []));
+      setClaimStatuses(val(results[6] as PromiseSettledResult<ClaimStatus[]>, []));
+      setClaimParts(val(results[7] as PromiseSettledResult<PartAnalysis[]>, []));
+      setClaimTrends(val(results[8] as PromiseSettledResult<ClaimTrend[]>, []));
+      setRecentClaims(val(results[9] as PromiseSettledResult<Record<string, unknown>[]>, []));
+      setCorrelations(val(results[10] as PromiseSettledResult<Correlations>, {}));
+      setInsights(val(results[11] as PromiseSettledResult<Insight[]>, []));
+      setValidation(val(results[12] as PromiseSettledResult<ValidationResult>, null));
+
+      // Log any individual failures for debugging
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.warn(`API call ${i} failed:`, r.reason);
+        }
+      });
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
-      setIsLoading(false);
+      if (myFetchId === fetchIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   // ─── Initial load ───────────────────────────────────────
+
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -352,13 +366,21 @@ export function useData(filters: Filters = {}) {
       } else {
         setIsLoading(false);
       }
+      initialLoadDone.current = true;
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Re-fetch on filter change ──────────────────────────
+  // ─── Re-fetch on filter change (skip first run — initial load handles it) ──
+
+  const isFirstFilterEffect = useRef(true);
 
   useEffect(() => {
+    // Skip the very first invocation: the initial-load effect already fetches
+    if (isFirstFilterEffect.current) {
+      isFirstFilterEffect.current = false;
+      return;
+    }
     if (dataLoaded) {
       fetchAllData(filters);
     }

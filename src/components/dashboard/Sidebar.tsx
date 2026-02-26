@@ -9,6 +9,7 @@ import {
   LogOut,
   User,
   Database,
+  Sparkles,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -23,6 +24,7 @@ const navItems = [
   { id: "Performance", icon: TrendingUp, label: "Performance" },
   { id: "Partners", icon: Users, label: "Partners" },
   { id: "Data Manager", icon: Database, label: "Data Manager" },
+  { id: "AI Chat", icon: Sparkles, label: "AI Chat" },
 ];
 
 export function Sidebar({ activeView, setActiveView }: SidebarProps) {

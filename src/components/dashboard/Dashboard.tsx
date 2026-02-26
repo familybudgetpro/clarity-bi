@@ -52,7 +52,6 @@ export default function ClarityDashboard() {
     }
   };
   const [showFilters, setShowFilters] = useState(false);
-  const [showChat, setShowChat] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [showWidgetGallery, setShowWidgetGallery] = useState(false);
@@ -79,11 +78,15 @@ export default function ClarityDashboard() {
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
   // ─── Initial Load Optimization ─────────────────────────
+  // Wait until the very first fetch is complete (isLoading goes false),
+  // then apply a 6-month date window. This avoids firing while data is
+  // still in-flight and prevents the duplicate-fetch race condition.
   const [hasSetInitialDate, setHasSetInitialDate] = useState(false);
 
   React.useEffect(() => {
     if (
       data.dataLoaded &&
+      !data.isLoading &&
       data.filterOptions.maxDate &&
       !hasSetInitialDate &&
       !filters.date_from
@@ -104,6 +107,7 @@ export default function ClarityDashboard() {
     }
   }, [
     data.dataLoaded,
+    data.isLoading,
     data.filterOptions,
     hasSetInitialDate,
     filters.date_from,
@@ -608,6 +612,19 @@ export default function ClarityDashboard() {
         return <PartnersView data={data} />;
       case "Data Manager":
         return <DataManagerView data={data} />;
+      case "AI Chat":
+        return (
+          <div className="flex-1 flex overflow-hidden">
+            <ChatPanel
+              show
+              fullPage
+              onSend={handleSendChatMessage}
+              aiAvailable={data.aiAvailable}
+              onAiAction={handleAiAction}
+              onAddWidget={handleAddWidgetFromChat}
+            />
+          </div>
+        );
       case "Settings":
         return <SettingsView aiAvailable={data.aiAvailable} />;
       case "Profile":
@@ -742,15 +759,6 @@ export default function ClarityDashboard() {
               </div>
             )}
           </main>
-
-          {/* Clarity AI Chat Sidebar */}
-          <ChatPanel
-            show={showChat}
-            onSend={handleSendChatMessage}
-            aiAvailable={data.aiAvailable}
-            onAiAction={handleAiAction}
-            onAddWidget={handleAddWidgetFromChat}
-          />
 
           {/* Floating Reset Button */}
           {appliedFilterCount > 0 && (
