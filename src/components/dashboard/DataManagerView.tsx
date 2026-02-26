@@ -13,7 +13,6 @@ import {
   History,
   AlertCircle,
 } from "lucide-react";
-import { List } from "react-window";
 import type { useData } from "@/hooks/useData";
 
 interface DataManagerViewProps {
@@ -23,7 +22,6 @@ interface DataManagerViewProps {
 const DataRow = React.memo(function DataRow({
   index,
   style,
-  ariaAttributes,
   rows,
   columns,
   page,
@@ -35,10 +33,10 @@ const DataRow = React.memo(function DataRow({
   startEdit,
   saveEdit,
   cancelEdit,
+  setEditValue,
 }: {
   index: number;
-  style: React.CSSProperties;
-  ariaAttributes: any;
+  style?: React.CSSProperties;
   rows: Record<string, unknown>[];
   columns: string[];
   page: number;
@@ -50,6 +48,7 @@ const DataRow = React.memo(function DataRow({
   startEdit: (rowId: number, col: string, currentValue: unknown) => void;
   saveEdit: () => Promise<void>;
   cancelEdit: () => void;
+  setEditValue: (value: string) => void;
 }) {
   const row = rows[index];
   if (!row) return null;
@@ -57,7 +56,6 @@ const DataRow = React.memo(function DataRow({
   return (
     <div
       style={style}
-      {...ariaAttributes}
       className="flex border-b border-border/50 hover:bg-muted/20 transition-colors group"
     >
       <div className="p-2 text-muted-foreground/50 text-[10px] w-12 shrink-0 flex items-center">
@@ -82,18 +80,16 @@ const DataRow = React.memo(function DataRow({
                   autoFocus
                   type="text"
                   value={editValue}
-                  onChange={
-                    (e) => (e.target as HTMLInputElement).value // This is handled by parent, but we need the type
-                  }
-                  // Note: we'll use the onChange from props but here it's easier to just pass through
-                  // Actually, let's just make sure it's wired correctly
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
                   className={`w-full px-1.5 py-0.5 text-[11px] border rounded outline-none ${
                     editError
                       ? "border-destructive bg-destructive/5"
                       : "border-primary bg-background"
                   }`}
-                  // The actual onChange and KeyDown are best handled by passing a wrapper or just the value
-                  // But since we are passing state directly, it should work if we wire it.
                 />
                 <div className="flex shrink-0">
                   <button
@@ -381,30 +377,26 @@ export function DataManagerView({ data }: DataManagerViewProps) {
               </div>
             </div>
 
-            {/* Virtualized Body */}
-            <div className="flex-1 min-w-max relative">
-              <List
-                rowCount={tableData.rows.length}
-                rowHeight={40}
-                style={{ height: 600, width: "100%" }}
-                className="overflow-y-auto"
-                // @ts-ignore - react-window version 2.2.6 types mismatch
-                rowComponent={DataRow}
-                // @ts-ignore - react-window version 2.2.6 types mismatch
-                rowProps={{
-                  rows: tableData.rows,
-                  columns: tableData.columns,
-                  page,
-                  limit,
-                  editingCell,
-                  editedCells,
-                  editValue,
-                  editError,
-                  startEdit,
-                  saveEdit,
-                  cancelEdit,
-                }}
-              />
+            {/* Virtualized Body — simple scrollable render (data is paginated, no heavy virtualization needed) */}
+            <div className="overflow-y-auto" style={{ maxHeight: 560 }}>
+              {tableData.rows.map((_, idx) => (
+                <DataRow
+                  key={idx}
+                  index={idx}
+                  rows={tableData.rows}
+                  columns={tableData.columns}
+                  page={page}
+                  limit={limit}
+                  editingCell={editingCell}
+                  editedCells={editedCells}
+                  editValue={editValue}
+                  editError={editError}
+                  startEdit={startEdit}
+                  saveEdit={saveEdit}
+                  cancelEdit={cancelEdit}
+                  setEditValue={setEditValue}
+                />
+              ))}
             </div>
           </div>
         )}

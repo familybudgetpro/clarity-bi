@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { buildTemplatePage } from "@/lib/templates";
 
 export interface Widget {
   id: string;
@@ -281,6 +282,31 @@ export function useDashboardState() {
     );
   }, []);
 
+  const createTemplatePage = useCallback((templateId: string) => {
+    const newPageId = `tpl-${templateId}-${Date.now()}`;
+    const page = buildTemplatePage(templateId, newPageId);
+    if (!page) return;
+    setPages((prev) => [...prev, page]);
+    setActivePageId(newPageId);
+  }, []);
+
+  const updateWidgetConfig = useCallback(
+    (pageId: string, widgetId: string, patch: Partial<Widget>) => {
+      setPages((prev) =>
+        prev.map((p) => {
+          if (p.id !== pageId) return p;
+          return {
+            ...p,
+            widgets: p.widgets.map((w) =>
+              w.id === widgetId ? { ...w, ...patch } : w,
+            ),
+          };
+        }),
+      );
+    },
+    [],
+  );
+
   return {
     pages,
     activePageId,
@@ -292,5 +318,7 @@ export function useDashboardState() {
     addWidgetToPage,
     removeWidgetFromPage,
     updatePageLayout,
+    updateWidgetConfig,
+    createTemplatePage,
   };
 }

@@ -18,6 +18,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import type { useData } from "@/hooks/useData";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
 // ─── Shared Components ──────────────────────────────────
 
@@ -785,7 +786,14 @@ export const PartnersView = React.memo(function PartnersView({
 
 // ─── Settings View ─────────────────────────────────────
 
-export const SettingsView = React.memo(function SettingsView() {
+export const SettingsView = React.memo(function SettingsView({
+  aiAvailable = false,
+}: {
+  aiAvailable?: boolean;
+}) {
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <div className="flex-1 overflow-y-auto p-6" id="settings-view">
       <SectionTitle title="Settings" subtitle="Dashboard configuration" />
@@ -800,9 +808,19 @@ export const SettingsView = React.memo(function SettingsView() {
                   Toggle dark/light theme
                 </p>
               </div>
-              <div className="w-12 h-6 bg-primary rounded-full relative cursor-pointer">
-                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full shadow" />
-              </div>
+              <button
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className={`w-12 h-6 rounded-full relative transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                  isDark ? "bg-primary" : "bg-muted border border-border"
+                }`}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-300 ${
+                    isDark ? "right-1" : "left-1"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>
@@ -828,8 +846,14 @@ export const SettingsView = React.memo(function SettingsView() {
                   AI-powered data analysis assistant
                 </p>
               </div>
-              <span className="text-xs bg-green-500/10 text-green-600 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">
-                Connected
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                  aiAvailable
+                    ? "bg-green-500/10 text-green-600 border-green-500/20"
+                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                }`}
+              >
+                {aiAvailable ? "Connected" : "Disconnected"}
               </span>
             </div>
           </div>
@@ -842,6 +866,11 @@ export const SettingsView = React.memo(function SettingsView() {
             <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">
               http://localhost:8000
             </code>
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Set{" "}
+            <code className="bg-muted px-1 py-0.5 rounded">GEMINI_API_KEY</code>{" "}
+            in your <code className="bg-muted px-1 py-0.5 rounded">.env</code> file to enable AI features.
           </p>
         </div>
       </div>

@@ -64,6 +64,16 @@ export interface SalesMonthly {
   policies: number;
 }
 
+export interface ClaimTrend {
+  Year: number;
+  Month: number;
+  period: string;
+  count: number;
+  totalAmount: number;
+  laborCost: number;
+  partsCost: number;
+}
+
 export interface DealerPerf {
   dealer: string;
   premium: number;
@@ -161,10 +171,21 @@ export interface RawDataResult {
   limit: number;
 }
 
+export interface WidgetSuggestion {
+  type: string;
+  title: string;
+}
+
 export interface ChatResponse {
   response: string;
-  actions?: { navigate?: string; filters?: Record<string, string> } | null;
+  actions?: {
+    navigate?: string;
+    filters?: Record<string, string>;
+    create_template?: string;
+  } | null;
   suggestions: string[];
+  nextSuggestions: string[];
+  widgetSuggestions: WidgetSuggestion[];
   aiAvailable: boolean;
 }
 
@@ -224,7 +245,7 @@ export function useData(filters: Filters = {}) {
   const [salesVehicles, setSalesVehicles] = useState<VehicleMix[]>([]);
   const [claimStatuses, setClaimStatuses] = useState<ClaimStatus[]>([]);
   const [claimParts, setClaimParts] = useState<PartAnalysis[]>([]);
-  const [claimTrends, setClaimTrends] = useState<SalesMonthly[]>([]);
+  const [claimTrends, setClaimTrends] = useState<ClaimTrend[]>([]);
   const [recentClaims, setRecentClaims] = useState<Record<string, unknown>[]>(
     [],
   );
@@ -293,7 +314,8 @@ export function useData(filters: Filters = {}) {
         apiFetch<VehicleMix[]>(`/api/sales/vehicles${qs}`),
         apiFetch<ClaimStatus[]>(`/api/claims/status${qs}`),
         apiFetch<PartAnalysis[]>(`/api/claims/parts${qs}`),
-        apiFetch<SalesMonthly[]>(`/api/claims/trends${qs}`),
+        apiFetch<ClaimTrend[]>(`/api/claims/trends${qs}`),
+
         apiFetch<Record<string, unknown>[]>(`/api/claims/recent${qs}`),
         apiFetch<Correlations>(`/api/correlations${qs}`),
         apiFetch<Insight[]>(`/api/insights${qs}`),
@@ -519,7 +541,7 @@ export function useData(filters: Filters = {}) {
     salesVehicles,
     claimStatuses,
     claimParts,
-    claimTrends,
+    claimTrends, // ClaimTrend[]
     recentClaims,
     correlations,
     insights,

@@ -56,6 +56,7 @@ export default function ClarityDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [showWidgetGallery, setShowWidgetGallery] = useState(false);
+  const [pendingAiFilters, setPendingAiFilters] = useState<Record<string, string> | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +95,7 @@ export default function ClarityDashboard() {
 
         applyFiltersDirectly({
           date_from: min.toISOString().split("T")[0],
+          date_to: max.toISOString().split("T")[0],
         });
         setHasSetInitialDate(true);
       } catch (e) {
@@ -111,22 +113,33 @@ export default function ClarityDashboard() {
   // ─── AI Chat ────────────────────────────────────────────
 
   const handleSendChatMessage = useCallback(
-    async (msg: string) => {
-      const result = await data.sendChatMessage(msg, []);
+    async (msg: string, history: Array<{ role: string; content: string }>) => {
+      const result = await data.sendChatMessage(msg, history);
       return {
         response: result.response,
         actions: result.actions || null,
         suggestions: result.suggestions || [],
+        nextSuggestions: result.nextSuggestions || [],
+        widgetSuggestions: result.widgetSuggestions || [],
       };
     },
     [data],
   );
 
-  // AI Action Handler — auto-navigate + auto-apply filters
+  const handleAddWidgetFromChat = useCallback(
+    (type: string, title: string) => {
+      dashboardState.addWidgetToPage(dashboardState.activePageId, type, title);
+      setActiveView("Report");
+    },
+    [dashboardState],
+  );
+
+  // AI Action Handler — queue filters for user approval, navigate immediately, create templates
   const handleAiAction = useCallback(
-    (action: { navigate?: string; filters?: Record<string, string> }) => {
+    (action: { navigate?: string; filters?: Record<string, string>; create_template?: string }) => {
       if (action.filters && Object.keys(action.filters).length > 0) {
-        applyFiltersDirectly(action.filters);
+        // Queue for user approval instead of applying immediately
+        setPendingAiFilters(action.filters);
       }
       if (action.navigate) {
         const viewMap: Record<string, string> = {
@@ -141,13 +154,19 @@ export default function ClarityDashboard() {
         const viewName = viewMap[action.navigate] || action.navigate;
         setActiveView(viewName);
       }
+      if (action.create_template) {
+        dashboardState.createTemplatePage(action.create_template);
+        setActiveView("Report");
+      }
     },
-    [applyFiltersDirectly],
+    [dashboardState],
   );
 
   const toggleEditMode = () => {
-    setIsEditing(!isEditing);
-    setShowWidgetGallery(!isEditing);
+    const next = !isEditing;
+    setIsEditing(next);
+    // Close gallery when exiting edit mode
+    if (!next) setShowWidgetGallery(false);
   };
 
   // Drag & Drop File
@@ -313,12 +332,17 @@ export default function ClarityDashboard() {
     }
 
     // Convert data for widgets — only compute when data exists
+    // Build a period→claimAmount lookup from actual claims trends
+    const claimsByPeriod = new Map(
+      data.claimTrends.map((c) => [c.period, c.totalAmount]),
+    );
+
     const monthlyForChart =
       data.salesMonthly.length > 0
         ? data.salesMonthly.map((d) => ({
             month: d.period,
             premium: d.premium,
-            claims: d.riskPremium,
+            claims: claimsByPeriod.get(d.period) ?? 0, // actual claim amount
             policies: d.policies,
           }))
         : [];
@@ -532,6 +556,39 @@ export default function ClarityDashboard() {
               clearFilter={(key) => clearFilter(key)}
               clearAll={clearAllFilters}
             />
+
+            {/* Pending AI Filter Banner */}
+            {pendingAiFilters && (
+              <div className="mx-4 mt-2 mb-0 flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-xl text-xs animate-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="w-2 h-2 rounded-full bg-primary shrink-0 animate-pulse" />
+                  <span className="text-foreground font-medium">AI suggests:</span>
+                  <span className="text-muted-foreground truncate">
+                    {Object.entries(pendingAiFilters)
+                      .map(([k, v]) => `${k} = ${v}`)
+                      .join(", ")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => {
+                      applyFiltersDirectly(pendingAiFilters);
+                      setPendingAiFilters(null);
+                    }}
+                    className="px-3 py-1 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-[10px]"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => setPendingAiFilters(null)}
+                    className="px-3 py-1 border border-border text-muted-foreground rounded-lg hover:bg-muted transition-colors text-[10px]"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             <InsightCards insights={data.insights} isLoading={data.isLoading} />
             <ReportManager
               isEditing={isEditing}
@@ -552,7 +609,7 @@ export default function ClarityDashboard() {
       case "Data Manager":
         return <DataManagerView data={data} />;
       case "Settings":
-        return <SettingsView />;
+        return <SettingsView aiAvailable={data.aiAvailable} />;
       case "Profile":
         return <ProfileView />;
       default:
@@ -600,6 +657,7 @@ export default function ClarityDashboard() {
           isExporting={isExporting}
           onPublishClick={() => setShowPublishModal(true)}
           validation={data.validation}
+          onAddWidget={() => setShowWidgetGallery(true)}
         />
 
         <div className="flex-1 flex overflow-hidden relative">
@@ -621,6 +679,42 @@ export default function ClarityDashboard() {
             filterOptions={data.filterOptions}
             onUploadClick={() => fileInputRef.current?.click()}
           />
+
+          {/* Widget Gallery — right-side slide panel */}
+          {isEditing && showWidgetGallery && (
+            <>
+              <div
+                className="absolute inset-0 bg-background/20 backdrop-blur-sm z-30 animate-in fade-in duration-200"
+                onClick={() => setShowWidgetGallery(false)}
+              />
+              <aside className="absolute top-0 right-0 bottom-0 w-72 bg-card border-l border-border flex flex-col shrink-0 shadow-2xl animate-in slide-in-from-right-4 duration-300 z-40">
+                <div className="p-3 border-b border-border flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-foreground">Add Widget</span>
+                    <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">10</span>
+                  </div>
+                  <button
+                    onClick={() => setShowWidgetGallery(false)}
+                    className="p-1 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-hidden pt-2">
+                  <WidgetGallery
+                    onSelect={(type, title) => {
+                      dashboardState.addWidgetToPage(
+                        dashboardState.activePageId,
+                        type,
+                        title,
+                      );
+                      setShowWidgetGallery(false);
+                    }}
+                  />
+                </div>
+              </aside>
+            </>
+          )}
 
           <main
             className={`flex-1 overflow-hidden relative flex flex-col ${isDraggingFile ? "bg-primary/5" : ""}`}
@@ -655,6 +749,7 @@ export default function ClarityDashboard() {
             onSend={handleSendChatMessage}
             aiAvailable={data.aiAvailable}
             onAiAction={handleAiAction}
+            onAddWidget={handleAddWidgetFromChat}
           />
 
           {/* Floating Reset Button */}
@@ -689,39 +784,7 @@ export default function ClarityDashboard() {
           </div>
         )}
 
-        {/* Widget Gallery Overlay */}
-        {isEditing && showWidgetGallery && (
-          <div className="absolute inset-0 z-40 bg-background/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-300">
-            <div className="w-full max-w-5xl h-full flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold">Add Widget</h2>
-                  <p className="text-muted-foreground">
-                    Select a visualization to add to your dashboard
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowWidgetGallery(false)}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <WidgetGallery
-                  onSelect={(type, title) => {
-                    dashboardState.addWidgetToPage(
-                      dashboardState.activePageId,
-                      type,
-                      title,
-                    );
-                    setShowWidgetGallery(false);
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Widget Gallery is now rendered as a right-side slide panel inside the content area above */}
       </div>
 
       <PublishModal

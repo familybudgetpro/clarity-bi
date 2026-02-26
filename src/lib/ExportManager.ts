@@ -66,6 +66,31 @@ export async function exportDashboardToPDF(
   }
 }
 
+export async function exportWidgetAsImage(
+  element: HTMLElement,
+  fileName: string = "widget",
+) {
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: null as any,
+    });
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  } catch (error) {
+    console.error("Image export failed", error);
+  }
+}
+
 import * as XLSX from "xlsx";
 
 export function exportToExcel(data: any[], fileName: string) {

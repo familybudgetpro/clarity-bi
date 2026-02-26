@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
-import { MoreVertical, X, Image, FileText, Move } from "lucide-react";
-import { exportDashboardToPDF } from "@/lib/ExportManager";
+import { MoreVertical, X, Image, FileText, Move, GripVertical, Settings } from "lucide-react";
+import { exportDashboardToPDF, exportWidgetAsImage } from "@/lib/ExportManager";
 
 interface WidgetCardProps {
   id: string;
@@ -9,6 +9,7 @@ interface WidgetCardProps {
   isEditing: boolean;
   onRemove?: () => void;
   onExportData?: () => void;
+  onConfigure?: () => void;
   className?: string;
 }
 
@@ -19,6 +20,7 @@ export function WidgetCard({
   isEditing,
   onRemove,
   onExportData,
+  onConfigure,
   className = "",
 }: WidgetCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -26,10 +28,12 @@ export function WidgetCard({
 
   const handleExport = (type: "pdf" | "image") => {
     if (cardRef.current) {
-      exportDashboardToPDF(
-        cardRef.current,
-        `Widget-${title.replace(/\s+/g, "-")}`,
-      );
+      const safeName = `Widget-${title.replace(/\s+/g, "-")}`;
+      if (type === "pdf") {
+        exportDashboardToPDF(cardRef.current, safeName);
+      } else {
+        exportWidgetAsImage(cardRef.current, safeName);
+      }
     }
     setMenuOpen(false);
   };
@@ -37,31 +41,43 @@ export function WidgetCard({
   return (
     <div
       ref={cardRef}
-      className={`bg-card border border-border rounded-xl shadow-sm flex flex-col h-full overflow-hidden transition-shadow hover:shadow-md ${className}`}
+      className={`bg-card border rounded-xl shadow-sm flex flex-col h-full overflow-hidden transition-all ${
+        isEditing
+          ? "border-primary/30 ring-1 ring-primary/20 shadow-primary/5"
+          : "border-border hover:shadow-md"
+      } ${className}`}
     >
-      <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/10">
-        <h3 className="font-semibold text-sm text-foreground truncate">
-          {title}
-        </h3>
-        <div className="flex items-center gap-2">
-          {isEditing && (
-            <>
-              <div
-                className="drag-handle cursor-move p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-colors border border-dashed border-border/50"
-                title="Drag to reposition"
-              >
-                <Move size={14} />
-              </div>
-              <button
-                onClick={onRemove}
-                className="p-1.5 hover:bg-destructive/10 hover:text-destructive rounded text-muted-foreground transition-colors"
-                title="Remove Widget"
-              >
-                <X size={14} />
-              </button>
-            </>
-          )}
-          {!isEditing && (
+      {/* Card Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/10 shrink-0">
+        {/* Drag handle — only visible in edit mode, part of header for compact layout */}
+        {isEditing ? (
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div
+              className="drag-handle cursor-move text-muted-foreground/50 hover:text-primary transition-colors shrink-0"
+              title="Drag to reposition"
+            >
+              <GripVertical size={13} />
+            </div>
+            <h3 className="font-semibold text-xs text-muted-foreground truncate">
+              {title}
+            </h3>
+          </div>
+        ) : (
+          <h3 className="font-semibold text-sm text-foreground truncate">
+            {title}
+          </h3>
+        )}
+
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          {isEditing ? (
+            <button
+              onClick={onRemove}
+              className="p-1 hover:bg-destructive/15 hover:text-destructive rounded text-muted-foreground/50 hover:text-destructive transition-colors"
+              title="Remove widget"
+            >
+              <X size={12} />
+            </button>
+          ) : (
             <button
               className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -77,7 +93,15 @@ export function WidgetCard({
 
         {/* Export Menu Overlay */}
         {menuOpen && (
-          <div className="absolute top-0 right-0 m-2 w-32 bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95">
+          <div className="absolute top-0 right-0 m-2 w-36 bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95">
+            {onConfigure && (
+              <button
+                onClick={() => { onConfigure(); setMenuOpen(false); }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-muted text-popover-foreground flex items-center gap-2 border-b border-border/50"
+              >
+                <Settings size={12} /> Configure
+              </button>
+            )}
             <button
               onClick={() => handleExport("pdf")}
               className="w-full text-left px-3 py-2 text-xs hover:bg-muted text-popover-foreground flex items-center gap-2"

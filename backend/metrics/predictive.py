@@ -21,7 +21,8 @@ def predict_loss_ratio(sales_df: pd.DataFrame, claims_df: pd.DataFrame, filters:
     sales_monthly = sales.groupby(['Year', 'Month'])['Gross Premium'].sum().reset_index()
     claims_monthly = claims.groupby(['Year', 'Month'])['Total Auth Amount'].sum().reset_index()
 
-    merged = pd.merge(sales_monthly, claims_monthly, on=['Year', 'Month'], how='inner')
+    merged = pd.merge(sales_monthly, claims_monthly, on=['Year', 'Month'], how='left')
+    merged['Total Auth Amount'] = merged['Total Auth Amount'].fillna(0)
     merged['loss_ratio'] = (merged['Total Auth Amount'] / merged['Gross Premium'] * 100).fillna(0)
     merged['period_idx'] = range(len(merged))
 

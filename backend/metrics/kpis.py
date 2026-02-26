@@ -8,7 +8,10 @@ def get_summary(sales_df: pd.DataFrame, claims_df: pd.DataFrame, merged_df: pd.D
 
     filters = filters or {}
     sales = apply_filters(sales_df, filters)
-    claims = apply_filters(claims_df, filters)
+    if claims_df is None:
+        claims = pd.DataFrame()
+    else:
+        claims = apply_filters(claims_df, filters)
 
     total_premium = float(sales['Gross Premium'].sum()) if 'Gross Premium' in sales.columns else 0
     total_risk_premium = float(sales['Risk Premium'].sum()) if 'Risk Premium' in sales.columns else 0

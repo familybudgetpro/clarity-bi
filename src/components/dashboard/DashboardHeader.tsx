@@ -14,6 +14,7 @@ import {
   Check,
   X,
   AlertTriangle,
+  LayoutGrid,
 } from "lucide-react";
 import { useTheme } from "@/components/ui/ThemeProvider";
 import { ValidationResult } from "@/hooks/useData";
@@ -29,6 +30,7 @@ interface DashboardHeaderProps {
 
   onPublishClick: () => void;
   validation?: ValidationResult | null;
+  onAddWidget?: () => void;
 }
 
 export function DashboardHeader({
@@ -41,6 +43,7 @@ export function DashboardHeader({
   isExporting,
   onPublishClick,
   validation,
+  onAddWidget,
 }: DashboardHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [isExportingMenuOpen, setIsExportingMenuOpen] = useState(false);
@@ -70,7 +73,6 @@ export function DashboardHeader({
           label="Upload"
           onClick={onUploadClick}
         />
-        <ToolbarButton icon={<Plus size={15} />} label="New" />
       </div>
 
       {/* Theme Toggle */}
@@ -86,12 +88,25 @@ export function DashboardHeader({
 
       {/* Right: Actions */}
       {isEditing ? (
-        <button
-          onClick={() => setIsEditing(false)}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-md transition-colors uppercase tracking-wider"
-        >
-          ✓ Done
-        </button>
+        <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider border border-amber-500/30 bg-amber-500/10 px-2 py-1 rounded-md">
+            Edit Mode
+          </span>
+          <button
+            onClick={onAddWidget}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-muted border border-border text-foreground rounded-lg text-xs font-semibold hover:bg-muted/80 hover:border-primary/50 transition-colors"
+          >
+            <LayoutGrid size={13} />
+            Add Widget
+          </button>
+          <button
+            onClick={() => setIsEditing(false)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm transition-colors"
+          >
+            <Check size={13} />
+            Done
+          </button>
+        </div>
       ) : (
         <div className="flex items-center gap-2 relative">
           <div className="relative">

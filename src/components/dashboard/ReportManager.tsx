@@ -4,6 +4,7 @@ import { Plus, X, Layout, MoreHorizontal, Pencil } from "lucide-react";
 import { useDashboardState } from "@/hooks/useDashboardState";
 // import { GridLayout } from "./GridLayout"; // Replaced with dynamic below
 import { WidgetCard } from "./widgets/WidgetCard";
+import { WidgetConfigPanel } from "./WidgetConfigPanel";
 
 const GridLayout = dynamic(
   () => import("./GridLayout").then((mod) => mod.GridLayout),
@@ -41,11 +42,16 @@ export function ReportManager({
     removePage,
     updatePageLayout,
     removeWidgetFromPage,
+    updateWidgetConfig,
   } = dashboardState;
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState("");
+  const [configuringWidgetId, setConfiguringWidgetId] = useState<string | null>(null);
 
   const activePage = pages.find((p) => p.id === activePageId);
+  const configuringWidget = activePage?.widgets.find(
+    (w) => w.id === configuringWidgetId,
+  );
 
   const startRenaming = (pageId: string, currentTitle: string) => {
     setEditingTitleId(pageId);
@@ -60,6 +66,7 @@ export function ReportManager({
   };
 
   return (
+    <>
     <div className="flex flex-col h-full">
       {/* Pages Tab Bar */}
       <div className="flex items-center gap-1 px-4 border-b border-border bg-muted/20 shrink-0 h-10 overflow-x-auto scrollbar-none">
@@ -150,6 +157,7 @@ export function ReportManager({
                 isEditing={isEditing}
                 onRemove={() => removeWidgetFromPage(activePage.id, widget.id)}
                 onExportData={() => onExport(widget.type, widget.title)}
+                onConfigure={() => setConfiguringWidgetId(widget.id)}
                 className="h-full"
               >
                 {renderWidget(widget.type, widget.config)}
@@ -169,5 +177,17 @@ export function ReportManager({
         )}
       </div>
     </div>
+
+    {/* Widget Config Panel */}
+    {configuringWidget && activePage && (
+      <WidgetConfigPanel
+        widget={configuringWidget}
+        onUpdate={(patch) =>
+          updateWidgetConfig(activePage.id, configuringWidget.id, patch)
+        }
+        onClose={() => setConfiguringWidgetId(null)}
+      />
+    )}
+  </>
   );
 }

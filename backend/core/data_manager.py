@@ -158,31 +158,145 @@ class DataManager:
     # ─── Data Summary for AI ───────────────────────────────────
 
     def get_data_summary_for_ai(self, filters: dict = None) -> str:
-        """Generate a text summary for Gemini context."""
+        """Generate a rich text summary for Gemini — includes full breakdowns so it can answer
+        questions like 'which month has most sales', 'top dealer', 'best product', etc."""
+        from backend.metrics import sales, claims
+        from backend.core.utils import apply_filters
+
         summary = kpis.get_summary(self.sales_df, self.claims_df, self.merged_df, filters)
         if not summary:
             return "No data loaded."
 
         filter_opts = self.get_filter_options()
+        active_filters = {k: v for k, v in (filters or {}).items() if v and v != 'All'}
 
-        text = f"""INSURANCE DATA SUMMARY:
-- Total Policies: {summary['totalPolicies']:,}
-- Total Gross Premium: {summary['totalPremium']:,.2f}
-- Total Claims: {summary['totalClaims']:,}
-- Total Claims Amount: {summary['totalClaimsAmount']:,.2f}
-- Claim Rate: {summary['claimRate']}%
-- Loss Ratio: {summary['lossRatio']}%
-- Average Claim Cost: {summary['avgClaimCost']:,.2f}
-- Average Premium: {summary['avgPremium']:,.2f}
-- Unique Makes: {summary['uniqueMakes']}
+        lines = []
 
-AVAILABLE DATA DIMENSIONS:
-- Dealers: {', '.join(filter_opts.get('dealers', []))}
-- Products: {', '.join(filter_opts.get('products', []))}
-- Years: {', '.join(str(y) for y in filter_opts.get('years', []))}
-- Claim Statuses: {', '.join(filter_opts.get('claimStatuses', []))}
-"""
-        return text
+        # ── 1. Overall KPIs ─────────────────────────────────────────────────
+        lines.append("=== OVERALL KPIs ===")
+        lines.append(f"Total Policies      : {summary['totalPolicies']:,}")
+        lines.append(f"Total Gross Premium : {summary['totalPremium']:,.2f}")
+        lines.append(f"Total Claims        : {summary['totalClaims']:,}")
+        lines.append(f"Total Claims Amount : {summary['totalClaimsAmount']:,.2f}")
+        lines.append(f"Claim Rate          : {summary['claimRate']}%")
+        lines.append(f"Loss Ratio          : {summary['lossRatio']}%")
+        lines.append(f"Avg Claim Cost      : {summary['avgClaimCost']:,.2f}")
+        lines.append(f"Avg Premium         : {summary['avgPremium']:,.2f}")
+        lines.append(f"Unique Dealers      : {summary['uniqueDealers']}")
+        lines.append(f"Unique Makes        : {summary['uniqueMakes']}")
+
+        # ── 2. Active filters context ────────────────────────────────────────
+        if active_filters:
+            lines.append("\n=== ACTIVE FILTERS ===")
+            for k, v in active_filters.items():
+                lines.append(f"  {k}: {v}")
+
+        # ── 3. Monthly Sales Breakdown ───────────────────────────────────────
+        try:
+            monthly = sales.get_sales_monthly(self.sales_df, filters)
+            if monthly:
+                lines.append("\n=== MONTHLY SALES (sorted by period) ===")
+                lines.append(f"{'Period':<12} {'Premium':>14} {'Policies':>10}")
+                lines.append("-" * 38)
+                for row in monthly:
+                    lines.append(
+                        f"{row['period']:<12} {row['premium']:>14,.2f} {int(row['policies']):>10,}"
+                    )
+                # Highlight best month
+                best = max(monthly, key=lambda r: r['premium'])
+                worst = min(monthly, key=lambda r: r['premium'])
+                lines.append(f"\n→ Highest premium month : {best['period']} ({best['premium']:,.2f})")
+                lines.append(f"→ Lowest  premium month : {worst['period']} ({worst['premium']:,.2f})")
+        except Exception:
+            pass
+
+        # ── 4. Dealer Performance ────────────────────────────────────────────
+        try:
+            dealers = sales.get_sales_dealers(self.sales_df, self.merged_df, filters)
+            if dealers:
+                dealers_sorted = sorted(dealers, key=lambda d: d['premium'], reverse=True)
+                lines.append("\n=== DEALER PERFORMANCE (top 15 by premium) ===")
+                lines.append(f"{'Dealer':<30} {'Premium':>14} {'Policies':>10} {'Loss Ratio':>12}")
+                lines.append("-" * 68)
+                for d in dealers_sorted[:15]:
+                    lr = f"{d.get('lossRatio', 0):.1f}%"
+                    lines.append(
+                        f"{str(d['dealer']):<30} {d['premium']:>14,.2f} {int(d['policies']):>10,} {lr:>12}"
+                    )
+                lines.append(f"\n→ Top dealer by premium : {dealers_sorted[0]['dealer']} ({dealers_sorted[0]['premium']:,.2f})")
+        except Exception:
+            pass
+
+        # ── 5. Product Mix ───────────────────────────────────────────────────
+        try:
+            products = sales.get_sales_products(self.sales_df, filters)
+            if products:
+                prods_sorted = sorted(products, key=lambda p: p['premium'], reverse=True)
+                lines.append("\n=== PRODUCT MIX ===")
+                lines.append(f"{'Product':<35} {'Premium':>14} {'Policies':>10}")
+                lines.append("-" * 61)
+                for p in prods_sorted:
+                    lines.append(
+                        f"{str(p['product']):<35} {p['premium']:>14,.2f} {int(p['count']):>10,}"
+                    )
+        except Exception:
+            pass
+
+        # ── 6. Vehicle Make Breakdown ────────────────────────────────────────
+        try:
+            vehicles = sales.get_sales_vehicles(self.sales_df, filters)
+            if vehicles:
+                lines.append("\n=== TOP VEHICLE MAKES ===")
+                lines.append(f"{'Make':<25} {'Policies':>10} {'Premium':>14}")
+                lines.append("-" * 51)
+                for v in vehicles[:15]:
+                    lines.append(
+                        f"{str(v['make']):<25} {int(v['count']):>10,} {v['premium']:>14,.2f}"
+                    )
+        except Exception:
+            pass
+
+        # ── 7. Claims Status Distribution ───────────────────────────────────
+        try:
+            cl_status = claims.get_claims_status(self.claims_df, filters)
+            if cl_status:
+                lines.append("\n=== CLAIMS BY STATUS ===")
+                lines.append(f"{'Status':<15} {'Count':>10} {'Total Amount':>16}")
+                lines.append("-" * 43)
+                for s in cl_status:
+                    lines.append(
+                        f"{str(s['status']):<15} {int(s['count']):>10,} {s['totalAmount']:>16,.2f}"
+                    )
+        except Exception:
+            pass
+
+        # ── 8. Monthly Claims Trend ──────────────────────────────────────────
+        try:
+            cl_trends = claims.get_claims_trends(self.claims_df, filters)
+            if cl_trends:
+                lines.append("\n=== MONTHLY CLAIMS TREND ===")
+                lines.append(f"{'Period':<12} {'Claims Count':>14} {'Total Amount':>16}")
+                lines.append("-" * 44)
+                for row in cl_trends:
+                    lines.append(
+                        f"{row['period']:<12} {int(row.get('count', 0)):>14,} {row.get('totalAmount', 0):>16,.2f}"
+                    )
+                best_cl = max(cl_trends, key=lambda r: r.get('totalAmount', 0))
+                lines.append(f"\n→ Highest claims month : {best_cl['period']} ({best_cl.get('totalAmount', 0):,.2f})")
+        except Exception:
+            pass
+
+        # ── 9. Available Dimensions ──────────────────────────────────────────
+        lines.append("\n=== AVAILABLE FILTER VALUES ===")
+        lines.append(f"Dealers        : {', '.join(str(x) for x in filter_opts.get('dealers', []))}")
+        lines.append(f"Products       : {', '.join(str(x) for x in filter_opts.get('products', []))}")
+        lines.append(f"Years          : {', '.join(str(y) for y in filter_opts.get('years', []))}")
+        lines.append(f"Makes          : {', '.join(str(x) for x in filter_opts.get('makes', [])[:30])}")
+        lines.append(f"Claim Statuses : {', '.join(str(x) for x in filter_opts.get('claimStatuses', []))}")
+        if filter_opts.get('minDate'):
+            lines.append(f"Date Range     : {filter_opts['minDate']} to {filter_opts['maxDate']}")
+
+        return "\n".join(lines)
 
     # ─── Raw Data (Paginated) ──────────────────────────────────
 

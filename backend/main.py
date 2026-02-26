@@ -296,34 +296,74 @@ async def get_insights(
 ):
     filters = _parse_filters(dealer, product, year, month, make, date_from, date_to, search, claim_status)
     
-    # 1. Loss Ratio Analysis
     summary = kpis.get_summary(data_manager.sales_df, data_manager.claims_df, data_manager.merged_df, filters)
     insights_list = []
     
     if summary:
         loss_ratio = summary.get('lossRatio', 0)
+        claim_rate = summary.get('claimRate', 0)
+        total_claims = summary.get('totalClaims', 0)
+        total_premium = summary.get('totalPremium', 0)
+
+        # Loss Ratio insight
         if loss_ratio > 80:
             insights_list.append({
-                "type": "warning",
+                "type": "danger",
                 "title": "High Loss Ratio Alert",
-                "message": f"current Loss Ratio is {loss_ratio}%, which exceeds the 80% threshold."
+                "description": f"Loss Ratio exceeds 80% threshold — immediate attention required.",
+                "metric": f"{loss_ratio}%",
+                "trend": "down"
             })
-        elif loss_ratio < 40:
-             insights_list.append({
+        elif loss_ratio > 60:
+            insights_list.append({
+                "type": "warning",
+                "title": "Elevated Loss Ratio",
+                "description": f"Loss Ratio is above the 60% caution level. Monitor closely.",
+                "metric": f"{loss_ratio}%",
+                "trend": "down"
+            })
+        else:
+            insights_list.append({
                 "type": "success",
-                "title": "Healthy Performance",
-                "message": f"Loss Ratio is excellent at {loss_ratio}%."
+                "title": "Healthy Loss Ratio",
+                "description": f"Loss Ratio is within acceptable range — strong portfolio health.",
+                "metric": f"{loss_ratio}%",
+                "trend": "up"
             })
 
-    # 2. Predictive Trend
-    prediction = predictive.predict_loss_ratio(data_manager.sales_df, data_manager.claims_df, filters)
-    if 'historicalSlope' in prediction:
-        trend = "increasing" if prediction['historicalSlope'] > 0 else "decreasing"
-        insights_list.append({
-            "type": "info" if trend == "decreasing" else "warning",
-            "title": f"Loss Ratio Trend",
-            "message": f"Loss Ratio is trending {trend} based on recent data."
-        })
+        # Claim rate insight
+        if claim_rate > 20:
+            insights_list.append({
+                "type": "warning",
+                "title": "High Claim Rate",
+                "description": f"More than 1 in 5 policies has a claim. Review underwriting criteria.",
+                "metric": f"{claim_rate}%",
+                "trend": "down"
+            })
+        elif claim_rate > 0:
+            insights_list.append({
+                "type": "info",
+                "title": "Claim Rate",
+                "description": f"{total_claims:,} claims recorded across the filtered period.",
+                "metric": f"{claim_rate}%",
+                "trend": "neutral"
+            })
+
+    # Predictive Trend insight
+    try:
+        prediction = predictive.predict_loss_ratio(data_manager.sales_df, data_manager.claims_df, filters)
+        if prediction and 'historicalSlope' in prediction:
+            slope = prediction['historicalSlope']
+            direction = "increasing" if slope > 0 else "decreasing"
+            insights_list.append({
+                "type": "forecast",
+                "title": "Loss Ratio Forecast",
+                "description": f"Historical trend shows loss ratio is {direction}. Plan accordingly.",
+                "metric": f"{'+' if slope > 0 else ''}{slope:.1f}% /mo",
+                "trend": "down" if slope > 0 else "up"
+            })
+    except Exception:
+        pass
 
     return insights_list
 
@@ -386,14 +426,42 @@ async def export_data(table: str):
 @app.post("/api/chat")
 async def chat(payload: ChatMessage):
     data_context = data_manager.get_data_summary_for_ai(payload.filters)
-    result = gemini.chat(payload.message, data_context, payload.history)
-    suggestions = gemini.get_suggestions(data_context) if gemini.is_available else []
+    result = gemini.chat(payload.message, data_context, payload.history or [])
+    # General suggestions for the empty state panel (up to 5)
+    general_suggestions = gemini.get_suggestions(data_context) if gemini.is_available else []
+    # Widget suggestions based on message keywords
+    widget_suggestions = _get_widget_suggestions(payload.message)
     return {
         "response": result.get('text', str(result)) if isinstance(result, dict) else str(result),
         "actions": result.get('actions') if isinstance(result, dict) else None,
-        "suggestions": suggestions,
+        "suggestions": general_suggestions,
+        "nextSuggestions": result.get('next_suggestions', []),
+        "widgetSuggestions": widget_suggestions,
         "aiAvailable": gemini.is_available,
     }
+
+
+def _get_widget_suggestions(message: str) -> list[dict]:
+    """Return relevant widget suggestions based on keywords in the user's message."""
+    msg = message.lower()
+    suggestions = []
+
+    if any(k in msg for k in ["trend", "over time", "monthly", "year", "history"]):
+        suggestions.append({"type": "chart-trend", "title": "Premium vs Claims Trend"})
+    if any(k in msg for k in ["region", "area", "geography", "location", "zone"]):
+        suggestions.append({"type": "chart-region", "title": "Performance by Region"})
+    if any(k in msg for k in ["product", "type", "category", "plan", "line"]):
+        suggestions.append({"type": "chart-products", "title": "Product Distribution"})
+    if any(k in msg for k in ["claim", "segment", "breakdown", "pie", "split"]):
+        suggestions.append({"type": "chart-pie", "title": "Claims by Type"})
+    if any(k in msg for k in ["dealer", "agent", "partner", "top", "ranking"]):
+        suggestions.append({"type": "table-dealers", "title": "Dealer Performance"})
+    if any(k in msg for k in ["premium", "revenue", "total", "kpi", "summary"]):
+        suggestions.append({"type": "kpi-premium", "title": "Total Premium KPI"})
+    if any(k in msg for k in ["loss ratio", "risk", "loss rate"]):
+        suggestions.append({"type": "kpi-loss", "title": "Loss Ratio KPI"})
+
+    return suggestions[:3]  # Cap at 3 suggestions
 
 @app.get("/api/chat/suggestions")
 async def chat_suggestions():
