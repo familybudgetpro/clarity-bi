@@ -37,7 +37,7 @@ export function TrendChart({
           data={data}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           onClick={(e: any) =>
-            e && e.activePayload && onClick?.(e.activePayload[0].payload)
+            e && e.activePayload && e.activePayload.length > 0 && onClick?.(e.activePayload[0].payload)
           }
           style={{ cursor: onClick ? "pointer" : "default" }}
         >

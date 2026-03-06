@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useDashboardState } from "@/hooks/useDashboardState";
 import { useFilters } from "@/hooks/useFilters";
 import { useData } from "@/hooks/useData";
@@ -77,42 +77,20 @@ export default function ClarityDashboard() {
   const data = useData(filters);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
-  // ─── Initial Load Optimization ─────────────────────────
-  // Wait until the very first fetch is complete (isLoading goes false),
-  // then apply a 6-month date window. This avoids firing while data is
-  // still in-flight and prevents the duplicate-fetch race condition.
-  const [hasSetInitialDate, setHasSetInitialDate] = useState(false);
+  // ─── Sync initial 6-month date filter to filter panel ───
+  // useData now computes the 6-month range and fetches with it on first load.
+  // We just need to sync the filter UI so the date inputs show the applied range.
+  const hasSetInitialDate = useRef(false);
 
-  React.useEffect(() => {
-    if (
-      data.dataLoaded &&
-      !data.isLoading &&
-      data.filterOptions.maxDate &&
-      !hasSetInitialDate &&
-      !filters.date_from
-    ) {
-      try {
-        const max = new Date(data.filterOptions.maxDate);
-        const min = new Date(max);
-        min.setMonth(min.getMonth() - 6);
-
-        applyFiltersDirectly({
-          date_from: min.toISOString().split("T")[0],
-          date_to: max.toISOString().split("T")[0],
-        });
-        setHasSetInitialDate(true);
-      } catch (e) {
-        console.error("Failed to set initial date range", e);
-      }
+  useEffect(() => {
+    if (data.initialDates && !hasSetInitialDate.current) {
+      hasSetInitialDate.current = true;
+      applyFiltersDirectly({
+        date_from: data.initialDates.from,
+        date_to: data.initialDates.to,
+      });
     }
-  }, [
-    data.dataLoaded,
-    data.isLoading,
-    data.filterOptions,
-    hasSetInitialDate,
-    filters.date_from,
-    applyFiltersDirectly,
-  ]);
+  }, [data.initialDates, applyFiltersDirectly]);
 
   // ─── AI Chat ────────────────────────────────────────────
 

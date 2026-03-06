@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, Any
 import os
 import io
+import pandas as pd
 from dotenv import load_dotenv
 
 # Load env from project root
@@ -40,11 +41,16 @@ gemini = GeminiService()
 @app.on_event("startup")
 async def startup():
     """Auto-load the Excel file if it exists."""
-    # Check project root and local backend dir
-    root_path = os.path.join(os.path.dirname(__file__), '..', 'Sales&ClaimsData.xls')
-    local_path = os.path.join(os.path.dirname(__file__), 'Sales&ClaimsData.xls')
+    # Check project root and local backend dir (prefer .xlsx, fallback to .xls)
+    base_dir = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(base_dir, '..', 'Sales&ClaimsData.xlsx'),
+        os.path.join(base_dir, '..', 'Sales&ClaimsData.xls'),
+        os.path.join(base_dir, 'Sales&ClaimsData.xlsx'),
+        os.path.join(base_dir, 'Sales&ClaimsData.xls'),
+    ]
     
-    excel_path = root_path if os.path.exists(root_path) else local_path
+    excel_path = next((p for p in candidates if os.path.exists(p)), None)
     
     if os.path.exists(excel_path):
         try:
@@ -98,12 +104,23 @@ async def upload_file(file: UploadFile = File(...)):
 @app.get("/api/status")
 async def get_status():
     """Check if data is loaded and AI is available."""
+    max_date = None
+    if data_manager.sales_df is not None:
+        try:
+            date_col = 'Policy Sold Date' if 'Policy Sold Date' in data_manager.sales_df.columns else None
+            if date_col:
+                dates = pd.to_datetime(data_manager.sales_df[date_col], errors='coerce').dropna()
+                if not dates.empty:
+                    max_date = dates.max().strftime('%Y-%m-%d')
+        except Exception:
+            pass
     return {
         "dataLoaded": data_manager.sales_df is not None,
         "salesRows": len(data_manager.sales_df) if data_manager.sales_df is not None else 0,
         "claimsRows": len(data_manager.claims_df) if data_manager.claims_df is not None else 0,
         "aiAvailable": gemini.is_available,
         "pendingChanges": len(data_manager.change_log),
+        "maxDate": max_date,
     }
 
 

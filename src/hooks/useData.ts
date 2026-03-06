@@ -256,6 +256,8 @@ export function useData(filters: Filters = {}) {
 
   // ─── Check status on mount ──────────────────────────────
 
+  const statusMaxDateRef = useRef<string | null>(null);
+
   const checkStatus = useCallback(async () => {
     try {
       const status = await apiFetch<{
@@ -264,11 +266,13 @@ export function useData(filters: Filters = {}) {
         claimsRows: number;
         aiAvailable: boolean;
         pendingChanges: number;
+        maxDate: string | null;
       }>("/api/status");
 
       setDataLoaded(status.dataLoaded);
       setAiAvailable(status.aiAvailable);
       setPendingChanges(status.pendingChanges);
+      statusMaxDateRef.current = status.maxDate || null;
 
       if (status.dataLoaded) {
         setUploadedFile({
@@ -357,12 +361,31 @@ export function useData(filters: Filters = {}) {
   // ─── Initial load ───────────────────────────────────────
 
   const initialLoadDone = useRef(false);
+  const [initialDates, setInitialDates] = useState<{ from: string; to: string } | null>(null);
+  const skipFilterEffectRef = useRef(false);
 
   useEffect(() => {
     (async () => {
       const loaded = await checkStatus();
       if (loaded) {
-        await fetchAllData(filters);
+        // Compute 6-month default date range from maxDate returned by /api/status
+        let initialFilters = { ...filters };
+        if (statusMaxDateRef.current && !filters.date_from && !filters.date_to) {
+          try {
+            const max = new Date(statusMaxDateRef.current);
+            const min = new Date(max);
+            min.setMonth(min.getMonth() - 6);
+            const dateFrom = min.toISOString().split("T")[0];
+            const dateTo = max.toISOString().split("T")[0];
+            initialFilters = { ...filters, date_from: dateFrom, date_to: dateTo };
+            // Set flag so the upcoming filter-change effect skips the redundant refetch
+            skipFilterEffectRef.current = true;
+            setInitialDates({ from: dateFrom, to: dateTo });
+          } catch (e) {
+            console.error("Failed to compute initial date range", e);
+          }
+        }
+        await fetchAllData(initialFilters);
       } else {
         setIsLoading(false);
       }
@@ -379,6 +402,11 @@ export function useData(filters: Filters = {}) {
     // Skip the very first invocation: the initial-load effect already fetches
     if (isFirstFilterEffect.current) {
       isFirstFilterEffect.current = false;
+      return;
+    }
+    // Skip if this was triggered by the initial date sync from Dashboard
+    if (skipFilterEffectRef.current) {
+      skipFilterEffectRef.current = false;
       return;
     }
     if (dataLoaded) {
@@ -553,6 +581,7 @@ export function useData(filters: Filters = {}) {
     uploadedFile,
     aiAvailable,
     pendingChanges,
+    initialDates,
 
     // Data
     kpis,
