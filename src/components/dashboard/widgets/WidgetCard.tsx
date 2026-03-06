@@ -48,7 +48,7 @@ export function WidgetCard({
       } ${className}`}
     >
       {/* Card Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/10 shrink-0">
+      <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/50 bg-muted/10 shrink-0">
         {/* Drag handle — only visible in edit mode, part of header for compact layout */}
         {isEditing ? (
           <div className="flex items-center gap-1.5 min-w-0">
@@ -63,7 +63,7 @@ export function WidgetCard({
             </h3>
           </div>
         ) : (
-          <h3 className="font-semibold text-sm text-foreground truncate">
+          <h3 className="font-semibold text-xs text-foreground truncate">
             {title}
           </h3>
         )}

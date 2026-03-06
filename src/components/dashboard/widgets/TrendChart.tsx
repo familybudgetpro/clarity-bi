@@ -3,6 +3,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Area,
+  Bar,
   Line,
   XAxis,
   YAxis,
@@ -25,13 +26,17 @@ export function TrendChart({
   data,
   onClick,
   selectedElement,
+  chartVariant,
 }: {
   data: DashboardDataPoint[];
   onClick?: (data: any) => void;
   selectedElement?: string | null;
+  chartVariant?: string;
 }) {
+  const useBar = chartVariant === "bar";
+  const useLine = chartVariant === "line";
   return (
-    <div className="h-full w-full" style={{ minHeight: 250 }}>
+    <div className="h-full w-full" style={{ minHeight: 180 }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}
@@ -76,12 +81,12 @@ export function TrendChart({
             dataKey="month"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "#64748b" }}
+            tick={{ fontSize: 9, fill: "#64748b" }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "#64748b" }}
+            tick={{ fontSize: 9, fill: "#64748b" }}
             tickFormatter={(v) => `$${v / 1000}k`}
           />
           <Tooltip
@@ -94,23 +99,23 @@ export function TrendChart({
             itemStyle={{ color: "#0f172a" }}
             labelStyle={{ color: "#0f172a", fontWeight: "bold" }}
           />
-          <Legend wrapperStyle={{ fontSize: 11, color: "#0f172a" }} />
-          <Area
-            type="monotone"
-            dataKey="premium"
-            name="Premium"
-            fill="url(#premiumGrad)"
-            stroke={CHART_COLORS.blue}
-            strokeWidth={2}
-          />
-          <Area
-            type="monotone"
-            dataKey="claims"
-            name="Claims"
-            fill="url(#claimsGrad)"
-            stroke={CHART_COLORS.amber}
-            strokeWidth={2}
-          />
+          <Legend wrapperStyle={{ fontSize: 9, color: "#0f172a" }} />
+          {useBar ? (
+            <>
+              <Bar dataKey="premium" name="Premium" fill={CHART_COLORS.blue} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="claims" name="Claims" fill={CHART_COLORS.amber} radius={[4, 4, 0, 0]} />
+            </>
+          ) : useLine ? (
+            <>
+              <Line type="monotone" dataKey="premium" name="Premium" stroke={CHART_COLORS.blue} strokeWidth={2} dot={{ r: 3, fill: CHART_COLORS.blue }} />
+              <Line type="monotone" dataKey="claims" name="Claims" stroke={CHART_COLORS.amber} strokeWidth={2} dot={{ r: 3, fill: CHART_COLORS.amber }} />
+            </>
+          ) : (
+            <>
+              <Area type="monotone" dataKey="premium" name="Premium" fill="url(#premiumGrad)" stroke={CHART_COLORS.blue} strokeWidth={2} />
+              <Area type="monotone" dataKey="claims" name="Claims" fill="url(#claimsGrad)" stroke={CHART_COLORS.amber} strokeWidth={2} />
+            </>
+          )}
           <Line
             type="monotone"
             dataKey="policies"

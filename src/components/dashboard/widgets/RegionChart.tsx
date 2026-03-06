@@ -18,7 +18,7 @@ const CHART_COLORS = {
   primary: "#4f46e5",
 };
 
-export function RegionChart({ data, onClick, selectedElement }: ChartProps) {
+export function RegionChart({ data, onClick, selectedElement, chartVariant }: ChartProps) {
   // This chart displays dealer performance as horizontal bars
   // The data uses "name" or "dealer" as the key label
   const labelKey =
@@ -37,7 +37,7 @@ export function RegionChart({ data, onClick, selectedElement }: ChartProps) {
   }
 
   return (
-    <div className="h-full w-full" style={{ minHeight: 250 }}>
+    <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" style={{ cursor: "pointer" }}>
           <CartesianGrid strokeDasharray="3 3" horizontal stroke="#e2e8f0" />
@@ -45,7 +45,7 @@ export function RegionChart({ data, onClick, selectedElement }: ChartProps) {
             type="number"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: "#64748b" }}
+            tick={{ fontSize: 9, fill: "#64748b" }}
             tickFormatter={(v) =>
               v >= 1_000_000
                 ? `${(v / 1_000_000).toFixed(1)}M`
@@ -59,8 +59,8 @@ export function RegionChart({ data, onClick, selectedElement }: ChartProps) {
             dataKey={labelKey}
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "#0f172a" }}
-            width={90}
+            tick={{ fontSize: 9, fill: "#0f172a" }}
+            width={80}
           />
           <Tooltip
             contentStyle={{

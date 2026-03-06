@@ -49,7 +49,7 @@ export function DashboardHeader({
   const [isExportingMenuOpen, setIsExportingMenuOpen] = useState(false);
 
   return (
-    <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-2 shrink-0 shadow-sm transition-colors duration-300">
+    <header className="h-12 md:h-14 bg-card border-b border-border flex items-center px-2 md:px-4 gap-1 md:gap-2 shrink-0 shadow-sm transition-colors duration-300">
       {/* Left: View Controls */}
       <div className="flex items-center gap-1 border-r border-border pr-3 mr-1">
         <ToolbarButton

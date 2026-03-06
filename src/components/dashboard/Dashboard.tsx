@@ -55,7 +55,7 @@ export default function ClarityDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [showWidgetGallery, setShowWidgetGallery] = useState(false);
-  const [pendingAiFilters, setPendingAiFilters] = useState<Record<string, string> | null>(null);
+  const [showChat, setShowChat] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,12 +116,11 @@ export default function ClarityDashboard() {
     [dashboardState],
   );
 
-  // AI Action Handler — queue filters for user approval, navigate immediately, create templates
+  // AI Action Handler — apply filters directly, navigate, create templates
   const handleAiAction = useCallback(
     (action: { navigate?: string; filters?: Record<string, string>; create_template?: string }) => {
       if (action.filters && Object.keys(action.filters).length > 0) {
-        // Queue for user approval instead of applying immediately
-        setPendingAiFilters(action.filters);
+        applyFiltersDirectly(action.filters);
       }
       if (action.navigate) {
         const viewMap: Record<string, string> = {
@@ -141,8 +140,17 @@ export default function ClarityDashboard() {
         setActiveView("Report");
       }
     },
-    [dashboardState],
+    [dashboardState, applyFiltersDirectly],
   );
+
+  // Handle sidebar nav — intercept AI Chat to toggle chat panel
+  const handleSetActiveView = useCallback((view: string) => {
+    if (view === "AI Chat") {
+      setShowChat(prev => !prev);
+    } else {
+      setActiveView(view);
+    }
+  }, []);
 
   const toggleEditMode = () => {
     const next = !isEditing;
@@ -258,8 +266,9 @@ export default function ClarityDashboard() {
 
   // ─── Render Widget Content ─────────────────────────────
 
-  const renderWidget = (type: string) => {
+  const renderWidget = (type: string, config?: any) => {
     if (!type || !data.kpis) return null;
+    const chartVariant = config?.chartVariant as string | undefined;
 
     if (type.startsWith("kpi")) {
       if (type.includes("premium"))
@@ -372,6 +381,7 @@ export default function ClarityDashboard() {
             data={monthlyForChart}
             onClick={handleChartClick}
             selectedElement={selectedElement}
+            chartVariant={chartVariant}
           />
         );
       case "chart-pie":
@@ -393,6 +403,7 @@ export default function ClarityDashboard() {
             data={productsForChart}
             onClick={handleChartClick}
             selectedElement={selectedElement}
+            chartVariant={chartVariant}
           />
         );
       case "chart-region":
@@ -404,6 +415,7 @@ export default function ClarityDashboard() {
             data={dealersForTable}
             onClick={handleChartClick}
             selectedElement={selectedElement}
+            chartVariant={chartVariant}
           />
         );
       case "table-dealers":
@@ -539,39 +551,6 @@ export default function ClarityDashboard() {
               clearAll={clearAllFilters}
             />
 
-            {/* Pending AI Filter Banner */}
-            {pendingAiFilters && (
-              <div className="mx-4 mt-2 mb-0 flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-xl text-xs animate-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="w-2 h-2 rounded-full bg-primary shrink-0 animate-pulse" />
-                  <span className="text-foreground font-medium">AI suggests:</span>
-                  <span className="text-muted-foreground truncate">
-                    {Object.entries(pendingAiFilters)
-                      .map(([k, v]) => `${k} = ${v}`)
-                      .join(", ")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => {
-                      applyFiltersDirectly(pendingAiFilters);
-                      setPendingAiFilters(null);
-                    }}
-                    className="px-3 py-1 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-[10px]"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => setPendingAiFilters(null)}
-                    className="px-3 py-1 border border-border text-muted-foreground rounded-lg hover:bg-muted transition-colors text-[10px]"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <InsightCards insights={data.insights} isLoading={data.isLoading} />
             <ReportManager
               isEditing={isEditing}
               dashboardState={dashboardState}
@@ -590,19 +569,7 @@ export default function ClarityDashboard() {
         return <PartnersView data={data} />;
       case "Data Manager":
         return <DataManagerView data={data} />;
-      case "AI Chat":
-        return (
-          <div className="flex-1 flex overflow-hidden">
-            <ChatPanel
-              show
-              fullPage
-              onSend={handleSendChatMessage}
-              aiAvailable={data.aiAvailable}
-              onAiAction={handleAiAction}
-              onAddWidget={handleAddWidgetFromChat}
-            />
-          </div>
-        );
+
       case "Settings":
         return <SettingsView aiAvailable={data.aiAvailable} />;
       case "Profile":
@@ -639,7 +606,7 @@ export default function ClarityDashboard() {
         }
       />
 
-      <Sidebar activeView={activeView} setActiveView={setActiveView} />
+      <Sidebar activeView={activeView} setActiveView={handleSetActiveView} chatOpen={showChat} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader
@@ -737,6 +704,21 @@ export default function ClarityDashboard() {
               </div>
             )}
           </main>
+
+          {/* AI Chat — right sidebar (overlay on small screens) */}
+          {showChat && (
+            <div
+              className="hidden max-md:block fixed inset-0 bg-background/30 backdrop-blur-sm z-30"
+              onClick={() => setShowChat(false)}
+            />
+          )}
+          <ChatPanel
+            show={showChat}
+            onSend={handleSendChatMessage}
+            aiAvailable={data.aiAvailable}
+            onAiAction={handleAiAction}
+            onAddWidget={handleAddWidgetFromChat}
+          />
 
           {/* Floating Reset Button */}
           {appliedFilterCount > 0 && (

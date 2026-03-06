@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { useData } from "@/hooks/useData";
 import { useTheme } from "@/components/ui/ThemeProvider";
+import { InsightCards } from "./InsightCards";
 
 // ─── Shared Components ──────────────────────────────────
 
@@ -163,6 +164,8 @@ export const AnalyticsView = React.memo(function AnalyticsView({
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6" id="analytics-view">
+      <InsightCards insights={data.insights} isLoading={data.isLoading} />
+
       <SectionTitle
         title="Analytics Overview"
         subtitle="Key metrics and performance indicators"

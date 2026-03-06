@@ -35,15 +35,15 @@ export function GridLayout({
   }, [children]);
 
   return (
-    <div ref={containerRef} className="w-full min-h-[500px]">
+    <div ref={containerRef} className="w-full min-h-[400px]">
       {mounted && (
         <ResponsiveReactGridLayout
           className="layout"
           width={width}
           layouts={layouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          breakpoints={{ lg: 900, md: 700, sm: 500, xs: 360, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          rowHeight={30} // Half-height for more granular vertical adjustment
+          rowHeight={20}
           onLayoutChange={(layout: any[], allLayouts: any) =>
             onLayoutChange(layout, allLayouts)
           }
@@ -52,8 +52,8 @@ export function GridLayout({
           resizeHandles={["s", "e", "se", "w", "n", "sw", "nw", "ne"]}
           preventCollision={false}
           compactType="vertical"
-          margin={[20, 20]} // Increased gap for cleaner look
-          containerPadding={[20, 20]}
+          margin={[10, 10]}
+          containerPadding={[12, 12]}
           draggableHandle=".drag-handle"
         >
           {widgets.map((w) => (

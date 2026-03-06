@@ -139,7 +139,7 @@ export function ReportManager({
       {/* Canvas Area */}
       <div
         id="report-canvas"
-        className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/10 p-4 relative scrollbar-thin scrollbar-thumb-muted-foreground/20"
+        className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/10 p-2 relative scrollbar-thin scrollbar-thumb-muted-foreground/20"
       >
         {activePage && (
           <GridLayout
@@ -147,7 +147,7 @@ export function ReportManager({
             widgets={activePage.widgets}
             layouts={activePage.layouts}
             isEditing={isEditing}
-            onLayoutChange={(l) => updatePageLayout(activePage.id, l)}
+            onLayoutChange={(_l, allLayouts) => updatePageLayout(activePage.id, _l, allLayouts)}
           >
             {activePage.widgets.map((widget) => (
               <WidgetCard

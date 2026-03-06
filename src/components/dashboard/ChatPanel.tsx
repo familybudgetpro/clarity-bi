@@ -328,7 +328,7 @@ export function ChatPanel({
   }
 
   return (
-    <aside className="w-80 bg-card border-l border-border flex flex-col shrink-0 shadow-lg">
+    <aside className="w-72 xl:w-80 bg-card border-l border-border flex flex-col shrink-0 shadow-lg max-md:absolute max-md:right-0 max-md:top-0 max-md:bottom-0 max-md:z-40 max-md:shadow-2xl max-md:animate-in max-md:slide-in-from-right">
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-border flex items-center gap-2 shrink-0">
         <Sparkles size={15} className="text-primary" />

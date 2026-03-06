@@ -15,6 +15,7 @@ import {
 interface SidebarProps {
   activeView: string;
   setActiveView: (view: string) => void;
+  chatOpen?: boolean;
 }
 
 const navItems = [
@@ -27,11 +28,11 @@ const navItems = [
   { id: "AI Chat", icon: Sparkles, label: "AI Chat" },
 ];
 
-export function Sidebar({ activeView, setActiveView }: SidebarProps) {
+export function Sidebar({ activeView, setActiveView, chatOpen }: SidebarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
-    <aside className="w-16 bg-card border-r border-border flex flex-col items-center py-4 gap-1 z-20 shadow-sm relative">
+    <aside className="w-14 md:w-16 bg-card border-r border-border flex flex-col items-center py-3 md:py-4 gap-0.5 md:gap-1 z-20 shadow-sm relative shrink-0">"
       {/* Logo */}
       <div className="w-10 h-10 bg-linear-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
         <span className="text-primary-foreground font-black text-lg">C</span>
@@ -42,7 +43,7 @@ export function Sidebar({ activeView, setActiveView }: SidebarProps) {
         <NavIcon
           key={item.id}
           icon={<item.icon size={20} />}
-          active={activeView === item.id}
+          active={item.id === "AI Chat" ? !!chatOpen : activeView === item.id}
           onClick={() => setActiveView(item.id)}
           tooltip={item.label}
         />

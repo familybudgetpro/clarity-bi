@@ -172,6 +172,15 @@ class DataManager:
 
         lines = []
 
+        # ── 0. Data Schema ──────────────────────────────────────────────────
+        lines.append("=== DATA SCHEMA ===")
+        if self.sales_df is not None:
+            cols = [c for c in self.sales_df.columns if c != '_row_id']
+            lines.append(f"Sales columns ({len(self.sales_df):,} rows): {', '.join(cols)}")
+        if self.claims_df is not None:
+            cols = [c for c in self.claims_df.columns if c != '_row_id']
+            lines.append(f"Claims columns ({len(self.claims_df):,} rows): {', '.join(cols)}")
+
         # ── 1. Overall KPIs ─────────────────────────────────────────────────
         lines.append("=== OVERALL KPIs ===")
         lines.append(f"Total Policies      : {summary['totalPolicies']:,}")
@@ -286,7 +295,71 @@ class DataManager:
         except Exception:
             pass
 
-        # ── 9. Available Dimensions ──────────────────────────────────────────
+        # ── 9. Top Part Failures ─────────────────────────────────────────────
+        try:
+            cdf = self.claims_df
+            if cdf is not None and filters:
+                cdf = apply_filters(cdf, filters)
+            if cdf is not None and 'Part Name' in cdf.columns:
+                part_counts = cdf.groupby('Part Name').agg(
+                    count=('Part Name', 'size'),
+                    total_amount=('Total Auth Amount', 'sum')
+                ).sort_values('count', ascending=False).head(20).reset_index()
+                if len(part_counts) > 0:
+                    lines.append("\n=== TOP PART FAILURES ===")
+                    lines.append(f"{'Part Name':<35} {'Claims':>10} {'Total Amount':>16}")
+                    lines.append("-" * 63)
+                    for _, row in part_counts.iterrows():
+                        lines.append(
+                            f"{str(row['Part Name']):<35} {int(row['count']):>10,} {row['total_amount']:>16,.2f}"
+                        )
+                    lines.append(f"\n→ Most common part failure : {part_counts.iloc[0]['Part Name']} ({int(part_counts.iloc[0]['count'])} claims)")
+        except Exception:
+            pass
+
+        # ── 10. Part Type Breakdown ──────────────────────────────────────────
+        try:
+            cdf = self.claims_df
+            if cdf is not None and filters:
+                cdf = apply_filters(cdf, filters)
+            if cdf is not None and 'Part Type' in cdf.columns:
+                ptype_counts = cdf.groupby('Part Type').agg(
+                    count=('Part Type', 'size'),
+                    total_amount=('Total Auth Amount', 'sum')
+                ).sort_values('count', ascending=False).reset_index()
+                if len(ptype_counts) > 0:
+                    lines.append("\n=== CLAIMS BY PART TYPE ===")
+                    lines.append(f"{'Part Type':<25} {'Claims':>10} {'Total Amount':>16}")
+                    lines.append("-" * 53)
+                    for _, row in ptype_counts.iterrows():
+                        lines.append(
+                            f"{str(row['Part Type']):<25} {int(row['count']):>10,} {row['total_amount']:>16,.2f}"
+                        )
+        except Exception:
+            pass
+
+        # ── 11. Claims by Make ───────────────────────────────────────────────
+        try:
+            cdf = self.claims_df
+            if cdf is not None and filters:
+                cdf = apply_filters(cdf, filters)
+            if cdf is not None and 'Make' in cdf.columns:
+                make_claims = cdf.groupby('Make').agg(
+                    count=('Make', 'size'),
+                    total_amount=('Total Auth Amount', 'sum')
+                ).sort_values('count', ascending=False).head(15).reset_index()
+                if len(make_claims) > 0:
+                    lines.append("\n=== CLAIMS BY VEHICLE MAKE ===")
+                    lines.append(f"{'Make':<25} {'Claims':>10} {'Total Amount':>16}")
+                    lines.append("-" * 53)
+                    for _, row in make_claims.iterrows():
+                        lines.append(
+                            f"{str(row['Make']):<25} {int(row['count']):>10,} {row['total_amount']:>16,.2f}"
+                        )
+        except Exception:
+            pass
+
+        # ── 12. Available Dimensions ─────────────────────────────────────────
         lines.append("\n=== AVAILABLE FILTER VALUES ===")
         lines.append(f"Dealers        : {', '.join(str(x) for x in filter_opts.get('dealers', []))}")
         lines.append(f"Products       : {', '.join(str(x) for x in filter_opts.get('products', []))}")
@@ -334,6 +407,10 @@ class DataManager:
         for col in result.columns:
             if result[col].dtype == 'datetime64[ns]':
                 result[col] = result[col].dt.strftime('%Y-%m-%d')
+
+        # Replace NaN/inf with None for JSON serialization
+        result = result.where(pd.notnull(result), None)
+        result = result.replace([np.inf, -np.inf], None)
 
         columns = [c for c in result.columns if c != '_row_id']
 

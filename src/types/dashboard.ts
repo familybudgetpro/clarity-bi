@@ -19,4 +19,5 @@ export interface ChartProps {
   data: DashboardDataPoint[];
   onClick?: (data: DashboardDataPoint) => void;
   selectedElement?: string | null;
+  chartVariant?: string;
 }

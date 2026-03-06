@@ -7,8 +7,8 @@ const COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ec4899"];
 
 export function PieChartWidget({ data, onClick, selectedElement }: ChartProps) {
   return (
-    <div className="h-full w-full flex flex-col" style={{ minHeight: 250 }}>
-      <div className="flex-1" style={{ minHeight: 150 }}>
+    <div className="h-full w-full flex flex-col" style={{ minHeight: 180 }}>
+      <div className="flex-1" style={{ minHeight: 120 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -48,22 +48,26 @@ export function PieChartWidget({ data, onClick, selectedElement }: ChartProps) {
         </ResponsiveContainer>
       </div>
       <div className="grid grid-cols-2 gap-1 px-2 mt-2">
-        {data.map((t, idx) => (
-          <div
-            key={t.name}
-            className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
-            onClick={() => onClick && onClick({ name: t.name })}
-          >
+        {data.map((t, idx) => {
+          const total = data.reduce((sum, d) => sum + (d.value || 0), 0);
+          const pct = total > 0 ? ((t.value || 0) / total * 100).toFixed(0) : "0";
+          return (
             <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                backgroundColor: t.color || COLORS[idx % COLORS.length],
-              }}
-            />
-            <span className="text-gray-600 truncate">{t.name}</span>
-            <span className="font-bold text-gray-900 ml-auto">{t.value}%</span>
-          </div>
-        ))}
+              key={t.name}
+              className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-muted p-1 rounded transition-colors"
+              onClick={() => onClick && onClick({ name: t.name })}
+            >
+              <div
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{
+                  backgroundColor: t.color || COLORS[idx % COLORS.length],
+                }}
+              />
+              <span className="text-muted-foreground truncate">{t.name}</span>
+              <span className="font-bold text-foreground ml-auto">{pct}%</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

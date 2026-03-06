@@ -18,9 +18,9 @@ const CHART_COLORS = {
   primary: "#4f46e5",
 };
 
-export function ProductChart({ data, onClick, selectedElement }: ChartProps) {
+export function ProductChart({ data, onClick, selectedElement, chartVariant }: ChartProps) {
   return (
-    <div className="h-full w-full" style={{ minHeight: 250 }}>
+    <div className="h-full w-full" style={{ minHeight: 180 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} style={{ cursor: "pointer" }}>
           <CartesianGrid
@@ -32,12 +32,12 @@ export function ProductChart({ data, onClick, selectedElement }: ChartProps) {
             dataKey="product"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: "#64748b" }}
+            tick={{ fontSize: 9, fill: "#64748b" }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: "#64748b" }}
+            tick={{ fontSize: 9, fill: "#64748b" }}
             tickFormatter={(v) => `$${v / 1000}k`}
           />
           <Tooltip
